@@ -13,8 +13,6 @@ a = Analysis(
         ('../docs/INSTALL_INFO.md', 'docs'),    # Информация для установщика
         ('../docs/COPYRIGHT.md', 'docs'),       # Документы в docs/
         ('../LICENSE', '.'),                    # LICENSE в корневую папку
-        ('../cleanup_temp_files.bat', 'bat'),   # Утилиты очистки
-        ('../cleanup_temp_files.py', 'bat'),
     ],
     hiddenimports=[
         'subprocess',
