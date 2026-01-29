@@ -1,59 +1,60 @@
 @echo off
+chcp 65001 >nul
 echo ========================================
 echo    UTILHELP Installer Builder
 echo ========================================
 echo.
 
-REM Сохраняем текущую папку
+REM Save current directory
 set SCRIPT_DIR=%~dp0
-REM Переходим в корневую папку проекта
+REM Go to project root
 cd /d "%SCRIPT_DIR%.."
 
-REM 
+REM Check if Inno Setup exists
 if not exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
-    echo ОШИБКА: Inno Setup 6 не найден!
-    echo Скачайте и установите Inno Setup с https://jrsoftware.org/isdl.php
+    echo ERROR: Inno Setup 6 not found!
+    echo Download and install Inno Setup from https://jrsoftware.org/isdl.php
     pause
     exit /b 1
 )
 
-REM 
+REM Check if executable exists
 if not exist "dist\UTILHELP\UTILHELP.exe" (
-    echo ОШИБКА: Скомпилированная программа не найдена!
-    echo Сначала запустите build_final.bat для создания exe файла
+    echo ERROR: Compiled program not found!
+    echo First run build_final.bat to create exe file
     pause
     exit /b 1
 )
 
-REM 
+REM Create output directory
 if not exist "installer_output" mkdir installer_output
 
-echo Создание установщика...
+echo Creating installer...
 echo.
 
-REM Компилируем установщик
+REM Compile installer
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "%SCRIPT_DIR%utilhelp_installer.iss"
 
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo ========================================
-    echo   Установщик успешно создан!
+    echo   Installer successfully created!
     echo ========================================
     echo.
-    echo Файл установщика: installer_output\UTILHELP_Setup_v1.0.exe
+    echo Installer file: installer_output\UTILHELP_Setup_v1.0.exe
     echo.
     
-    REM 
+    REM Open output folder
     explorer installer_output
     
-    echo Нажмите любую клавишу для выхода...
+    echo Press any key to exit...
     pause >nul
 ) else (
     echo.
     echo ========================================
-    echo   ОШИБКА при создании установщика!
+    echo   ERROR creating installer!
     echo ========================================
     echo.
-    echo Проверьте файл utilhelp_installer.iss на наличие ошибок
+    echo Check utilhelp_installer.iss file for errors
     pause
 )
