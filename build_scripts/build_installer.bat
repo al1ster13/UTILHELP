@@ -4,6 +4,11 @@ echo    UTILHELP Installer Builder
 echo ========================================
 echo.
 
+REM Сохраняем текущую папку
+set SCRIPT_DIR=%~dp0
+REM Переходим в корневую папку проекта
+cd /d "%SCRIPT_DIR%.."
+
 REM 
 if not exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
     echo ОШИБКА: Inno Setup 6 не найден!
@@ -27,7 +32,7 @@ echo Создание установщика...
 echo.
 
 REM Компилируем установщик
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" utilhelp_installer.iss
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "%SCRIPT_DIR%utilhelp_installer.iss"
 
 if %ERRORLEVEL% EQU 0 (
     echo.

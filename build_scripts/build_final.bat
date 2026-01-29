@@ -3,13 +3,18 @@ echo ========================================
 echo UTILHELP - Final Build with Structure
 echo ========================================
 
+REM Сохраняем текущую папку
+set SCRIPT_DIR=%~dp0
+REM Переходим в корневую папку проекта
+cd /d "%SCRIPT_DIR%.."
+
 REM Очистка
 if exist "dist" rmdir /s /q "dist"
 if exist "build" rmdir /s /q "build"
 
 REM 
 echo Building executable with structured spec...
-python -m PyInstaller utilhelp_structured.spec --clean
+python -m PyInstaller "%SCRIPT_DIR%utilhelp_structured.spec" --clean
 
 REM 
 if not exist "dist\UTILHELP\UTILHELP.exe" (
@@ -21,7 +26,7 @@ if not exist "dist\UTILHELP\UTILHELP.exe" (
 echo Build successful! Reorganizing structure...
 
 REM 
-python reorganize_build.py
+python "%SCRIPT_DIR%reorganize_build.py"
 
 if %ERRORLEVEL% NEQ 0 (
     echo Reorganization failed!

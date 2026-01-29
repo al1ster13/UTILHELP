@@ -10,11 +10,11 @@ AppUpdatesURL=https://github.com/al1ster13/UTILHELP/releases
 DefaultDirName={autopf}\UTILHELP
 DefaultGroupName=UTILHELP
 AllowNoIcons=yes
-LicenseFile=LICENSE
-InfoBeforeFile=INSTALL_INFO.md
-OutputDir=installer_output
+LicenseFile=..\LICENSE
+InfoBeforeFile=..\docs\INSTALL_INFO.md
+OutputDir=..\installer_output
 OutputBaseFilename=UTILHELP_Setup_v1.0
-SetupIconFile=Icons\utilhelp.ico
+SetupIconFile=..\Icons\utilhelp.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -28,8 +28,8 @@ UsePreviousAppDir=yes
 UsePreviousGroup=yes
 UsePreviousSetupType=yes
 UsePreviousLanguage=yes
-WizardImageFile=Icons\installer2.png
-WizardSmallImageFile=Icons\utilhelplogo24.png
+WizardImageFile=..\Icons\installer2.png
+WizardSmallImageFile=..\Icons\utilhelplogo24.png
 ShowLanguageDialog=no
 LanguageDetectionMethod=uilanguage
 DisableProgramGroupPage=yes
@@ -48,11 +48,11 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startmenu"; Description: "Создать ярлык в меню Пуск"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
 
 [Files]
-Source: "dist\UTILHELP\UTILHELP.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\UTILHELP\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "LICENSE"
-Source: "Icons\utilhelp.ico"; DestDir: "{app}"; Flags: ignoreversion
-Source: "version.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "LICENSE"; DestDir: "{app}\docs"; Flags: ignoreversion
+Source: "..\dist\UTILHELP\UTILHELP.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\UTILHELP\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "LICENSE"
+Source: "..\Icons\utilhelp.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\version.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE"; DestDir: "{app}\docs"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\UTILHELP"; Filename: "{app}\UTILHELP.exe"; IconFilename: "{app}\utilhelp.ico"; Comment: "Универсальный помощник для Windows"; Tasks: startmenu

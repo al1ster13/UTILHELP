@@ -5,12 +5,14 @@ import sys
 def reorganize_build():
     print("=== РЕОРГАНИЗАЦИЯ СТРУКТУРЫ СБОРКИ ===")
     
+    # Мы уже в корневой папке проекта благодаря bat файлу
+    
     dist_path = "dist/UTILHELP"
     internal_path = os.path.join(dist_path, "_internal")
     
     if not os.path.exists(dist_path):
         print(f"❌ Папка {dist_path} не найдена!")
-        print("Сначала выполните сборку: python -m PyInstaller utilhelp_structured.spec")
+        print("Сначала выполните сборку: python -m PyInstaller build_scripts/utilhelp_structured.spec")
         return False
     
     if not os.path.exists(internal_path):
