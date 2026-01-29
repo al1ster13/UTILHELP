@@ -64,6 +64,19 @@ if __name__ == "__main__":
     print("Создание QApplication...")
     app = QApplication(sys.argv)
     
+    # Устанавливаем иконку приложения для панели задач
+    from resource_path import get_icon_path
+    from PyQt6.QtGui import QIcon
+    
+    icon_path = get_icon_path("utilhelp.ico")
+    if icon_path:
+        app.setWindowIcon(QIcon(icon_path))
+    else:
+        # Fallback на PNG иконку
+        png_icon_path = get_icon_path("logo64x64.png")
+        if png_icon_path:
+            app.setWindowIcon(QIcon(png_icon_path))
+    
     shared_memory = QSharedMemory("UTILHELP_SINGLE_INSTANCE")
     
     if shared_memory.attach():
