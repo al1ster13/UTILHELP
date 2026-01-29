@@ -769,19 +769,27 @@ class ProgramsTab(QWidget):
         
         search_layout.addWidget(self.search_input)
         
-        self.scan_button = QPushButton("⟲")
-        self.scan_button.setFixedSize(40, 40)
+        
+        from resource_path import get_icon_path
+        from PyQt6.QtGui import QIcon
+        from PyQt6.QtCore import QSize
+        
+        self.scan_button = QPushButton()
+        self.update_scan_button_icon(False)  
+            
+        self.scan_button.setFixedSize(35, 35)
         self.scan_button.clicked.connect(self.start_system_scan)
         self.scan_button.setToolTip("Сканировать систему на наличие установленных программ\nи отметить их зелеными галочками")
         self.scan_button.setStyleSheet("""
             QPushButton {
                 background-color: #666666;
                 border: none;
-                border-radius: 20px;
+                border-radius: 17px;
                 color: #ffffff;
-                font-size: 18px;
+                font-size: 16px;
                 font-weight: bold;
                 outline: none;
+                padding-left: 2px;
             }
             QPushButton:hover {
                 background-color: #777777;
@@ -1190,6 +1198,24 @@ class ProgramsTab(QWidget):
             self.info_panel.hide_panel()
             self.current_program = None
     
+    def update_scan_button_icon(self, scanning=False):
+        """Обновление иконки кнопки сканирования"""
+        from resource_path import get_icon_path
+        from PyQt6.QtGui import QIcon
+        from PyQt6.QtCore import QSize
+        
+        update_icon_path = get_icon_path("update.png")
+        if update_icon_path:
+            icon = QIcon(update_icon_path)
+            self.scan_button.setIcon(icon)
+            self.scan_button.setIconSize(QSize(18, 18))
+            self.scan_button.setText("")  
+        else:
+            if scanning:
+                self.scan_button.setText("⟳")
+            else:
+                self.scan_button.setText("⟲")
+
     def resizeEvent(self, event):
         """Обработка изменения размера окна"""
         super().resizeEvent(event)
@@ -1210,7 +1236,7 @@ class ProgramsTab(QWidget):
             return
         
         self.scan_in_progress = True
-        self.scan_button.setText("⟳")
+        self.update_scan_button_icon(True)  
         self.scan_button.setEnabled(False)
         
         from PyQt6.QtCore import QTimer
@@ -1227,5 +1253,5 @@ class ProgramsTab(QWidget):
             print(f"Ошибка сканирования: {e}")
         finally:
             self.scan_in_progress = False
-            self.scan_button.setText("⟲")
+            self.update_scan_button_icon(False) 
             self.scan_button.setEnabled(True)
