@@ -6,6 +6,7 @@ from datetime import datetime
 
 class SettingsManager:
     """Менеджер настроек программы в JSON формате"""
+    
     def __init__(self):
         os.makedirs("data", exist_ok=True)
         self.settings_file = os.path.join("data", "settings.json")
@@ -124,10 +125,10 @@ class SettingsManager:
         return self.scan_cache.get(cache_key, {}).get(item_name, {"installed": False, "exact_name": None, "version": None})
     
     def should_auto_scan(self) -> bool:
-        """Проверка автоматического сканирования"""
+        """Проверка нужно ли выполнять автоматическое сканирование"""
         if not self.settings.get("auto_scan_enabled", True):
             return False
-
+        
         if not self.is_cache_valid():
             return True
         
@@ -142,5 +143,27 @@ class SettingsManager:
             return minutes_passed >= self.settings.get("scan_interval_minutes", 30)
         except Exception:
             return True
+    
+    def migrate_from_db(self):
+        """Миграция настроек из старой SQLite базы (если есть)"""
+        try:
+            old_db_path = "settings.db"
+            if os.path.exists(old_db_path):
+                print("Найдена старая база настроек settings.db")
+                os.makedirs("data", exist_ok=True)
+                backup_path = os.path.join("data", "settings.db.backup")
+                if not os.path.exists(backup_path):
+                    os.rename(old_db_path, backup_path)
+                    print("Старая база перенесена в data/settings.db.backup")
+            
+            data_db_path = os.path.join("data", "settings.db")
+            if os.path.exists(data_db_path):
+                print("Найдена старая база настроек в data/settings.db")
+                backup_path = os.path.join("data", "settings.db.backup")
+                if not os.path.exists(backup_path):
+                    os.rename(data_db_path, backup_path)
+                    print("Старая база переименована в data/settings.db.backup")
+        except Exception as e:
+            print(f"Ошибка миграции: {e}")
 
 settings_manager = SettingsManager()
