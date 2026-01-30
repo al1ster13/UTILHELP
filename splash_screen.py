@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QProgressBar
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QIcon
+from resource_path import get_icon_path
 
 
 class SplashScreen(QWidget):
@@ -8,22 +9,29 @@ class SplashScreen(QWidget):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("Загрузка...")
+        self.setWindowTitle("UTILHELP - Загрузка...")
         self.setFixedSize(400, 300)  
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        icon_path = get_icon_path("utilhelp.ico")
+        if icon_path:
+            self.setWindowIcon(QIcon(icon_path))
+        else:
+            png_icon_path = get_icon_path("logo64x64.png")
+            if png_icon_path:
+                self.setWindowIcon(QIcon(png_icon_path))
         
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         
         self.background = QWidget()
         
-        self.gradient_position = 0
-        self.gradient_timer = QTimer()
-        self.gradient_timer.timeout.connect(self.update_gradient)
-        self.gradient_timer.start(100)  
-
-        self.update_gradient()
+        self.background.setStyleSheet("""
+            background-color: #2d2d2d;
+            border-radius: 15px;
+            border: none;
+        """)
         
         bg_layout = QVBoxLayout(self.background)
         bg_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -153,34 +161,8 @@ class SplashScreen(QWidget):
         ]
         self.current_status = 0
 
-    def update_gradient(self):
-        self.gradient_position = (self.gradient_position + 1) % 100
-        
-        progress = self.gradient_position / 100.0
-        
-        colors = [
-            "#1a1a1a",  
-            "#2d2d2d",  
-            "#353535",  
-            "#404040",  
-            "#2a2a2a"   
-        ]
-        
-        pos1 = int(progress * 2) % len(colors)
-        pos2 = (pos1 + 1) % len(colors)
-        pos3 = (pos1 + 2) % len(colors)
-        
-        gradient_style = f"""
-            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1,
-                stop: 0 {colors[pos1]}, 
-                stop: 0.5 {colors[pos2]}, 
-                stop: 1 {colors[pos3]});
-            border-radius: 15px;
-        """
-        
-        self.background.setStyleSheet(gradient_style)
-
     def update_scrolling_text(self):
+        """Обновление прокручивающегося текста"""
         if not hasattr(self, 'scroll_messages'):
             return
             
@@ -205,8 +187,6 @@ class SplashScreen(QWidget):
 
     def close_with_cleanup(self):
         """Закрытие с очисткой таймеров"""
-        if hasattr(self, 'gradient_timer'):
-            self.gradient_timer.stop()
         if hasattr(self, 'scroll_timer'):
             self.scroll_timer.stop()
         if hasattr(self, 'status_timer'):

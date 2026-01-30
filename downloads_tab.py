@@ -178,8 +178,7 @@ class DownloadsTab(QWidget):
             empty_container = QFrame()
             empty_container.setStyleSheet("""
                 QFrame {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 rgba(85, 85, 85, 0.2), stop:1 transparent);
+                    background-color: rgba(85, 85, 85, 0.2);
                     border: 1px solid rgba(102, 102, 102, 0.4);
                     border-radius: 20px;
                 }
@@ -268,15 +267,13 @@ class DownloadsTab(QWidget):
         card.setFixedSize(300, 260)
         card.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #2d2d2d, stop:1 #252525);
+                background-color: #2d2d2d;
                 border: 2px solid #404040;
                 border-radius: 18px;
                 padding: 0px;
             }
             QFrame:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #353535, stop:1 #2d2d2d);
+                background-color: #353535;
                 border: 2px solid #666666;
             }
         """)
@@ -491,8 +488,7 @@ class DownloadsTab(QWidget):
         run_btn.clicked.connect(lambda: self.run_file(download))
         run_btn.setStyleSheet("""
             QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #4CAF50, stop:1 #45a049);
+                background-color: #4CAF50;
                 color: white;
                 border: 1px solid #4CAF50;
                 padding: 8px 16px;
@@ -503,13 +499,11 @@ class DownloadsTab(QWidget):
                 text-align: left;
             }
             QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #5CBF60, stop:1 #4CAF50);
+                background-color: #5CBF60;
                 border: 1px solid #5CBF60;
             }
             QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #45a049, stop:1 #3d8b40);
+                background-color: #45a049;
             }
         """)
         buttons_layout.addWidget(run_btn)

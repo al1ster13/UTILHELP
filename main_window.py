@@ -677,8 +677,7 @@ class SettingsTab(QWidget):
         item = QWidget()
         item.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #2d2d2d, stop: 1 #252525);
+                background-color: #2d2d2d;
                 border-radius: 15px;
                 border: 1px solid #404040;
                 padding: 5px;
@@ -803,8 +802,7 @@ class SettingsTab(QWidget):
         info_widget = QWidget()
         info_widget.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1,
-                    stop: 0 #2d2d2d, stop: 1 #252525);
+                background-color: #2d2d2d;
                 border-radius: 15px;
                 border: 1px solid #404040;
                 padding: 10px;
@@ -915,8 +913,7 @@ class SettingsTab(QWidget):
         update_widget = QWidget()
         update_widget.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1,
-                    stop: 0 #2d2d2d, stop: 1 #252525);
+                background-color: #2d2d2d;
                 border-radius: 12px;
                 border: 1px solid #404040;
             }
@@ -1035,10 +1032,9 @@ class SettingsTab(QWidget):
         update_widget = QWidget()
         update_widget.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1,
-                    stop: 0 #2d2d2d, stop: 1 #252525);
+                background-color: #2d2d2d;
                 border-radius: 12px;
-                border: none;
+                border: 1px solid #404040;
             }
         """)
         
@@ -1199,8 +1195,7 @@ class SettingsTab(QWidget):
         update_widget = QWidget()
         update_widget.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1,
-                    stop: 0 #2d2d2d, stop: 1 #252525);
+                background-color: #2d2d2d;
                 border-radius: 15px;
                 border: 1px solid #404040;
                 padding: 10px;
@@ -1565,8 +1560,7 @@ class SettingsTab(QWidget):
         contacts_widget = QWidget()
         contacts_widget.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1,
-                    stop: 0 #2d2d2d, stop: 1 #252525);
+                background-color: #2d2d2d;
                 border-radius: 15px;
                 border: 1px solid #404040;
                 padding: 10px;
@@ -3126,7 +3120,6 @@ class MainWindow(QMainWindow):
         
         print(f"✓ Данные переданы в интерфейс")
         
-        # Автоматическое сканирование системы
         self.start_auto_scan_if_needed()
     
     def on_data_failed(self, error):
@@ -3196,7 +3189,6 @@ class MainWindow(QMainWindow):
         if settings_manager.should_auto_scan():
             print("Запуск автоматического сканирования системы...")
             
-            # Запускаем фоновое сканирование
             programs_data = getattr(self.programs_tab, 'all_programs', [])
             drivers_data = getattr(self.drivers_tab, 'all_drivers', [])
             
@@ -3210,21 +3202,19 @@ class MainWindow(QMainWindow):
         """Обработка завершения фонового сканирования"""
         print(f"Автосканирование завершено: программ {summary['programs_found']}, драйверов {summary['drivers_found']}")
         
-        # Обновляем кеш в менеджерах статусов
         if hasattr(self, 'programs_tab') and hasattr(self.programs_tab, 'status_manager'):
             self.programs_tab.status_manager.refresh_cache()
         
         if hasattr(self, 'drivers_tab') and hasattr(self.drivers_tab, 'status_manager'):
             self.drivers_tab.status_manager.refresh_cache()
         
-        # Обновляем отображение в вкладках
         if hasattr(self, 'programs_tab'):
             self.programs_tab.display_programs()
-            self.programs_tab.update()  # Принудительное обновление виджета
+            self.programs_tab.update()  
         
         if hasattr(self, 'drivers_tab'):
             self.drivers_tab.display_drivers()
-            self.drivers_tab.update()  # Принудительное обновление виджета
+            self.drivers_tab.update()  
 
 
 class DownloadItem:

@@ -11,6 +11,58 @@ from temp_manager import get_temp_manager
 from json_data_manager import get_json_manager
 
 
+def is_portable_mode():
+    """Определение портативного режима по наличию маркера"""
+    try:
+        # Получаем путь к папке с программой
+        if getattr(sys, 'frozen', False):
+            # Если программа скомпилирована
+            app_dir = os.path.dirname(sys.executable)
+        else:
+            # Если запускается из исходников
+            app_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Проверяем наличие маркера портативной версии
+        portable_marker = os.path.join(app_dir, "PORTABLE_MODE.txt")
+        return os.path.exists(portable_marker)
+    except:
+        return False
+
+
+def get_app_data_dir():
+    """Получение папки для данных приложения"""
+    if is_portable_mode():
+        # В портативном режиме используем папку программы
+        if getattr(sys, 'frozen', False):
+            return os.path.dirname(sys.executable)
+        else:
+            return os.path.dirname(os.path.abspath(__file__))
+    else:
+        # В обычном режиме используем текущую папку
+        return os.getcwd()
+
+
+def setup_portable_environment():
+    """Настройка окружения для портативного режима"""
+    if is_portable_mode():
+        app_dir = get_app_data_dir()
+        
+        # Создаем необходимые папки
+        data_dir = os.path.join(app_dir, "data")
+        uhdownload_dir = os.path.join(app_dir, "UHDOWNLOAD")
+        
+        os.makedirs(data_dir, exist_ok=True)
+        os.makedirs(uhdownload_dir, exist_ok=True)
+        
+        # Меняем рабочую директорию на папку программы
+        os.chdir(app_dir)
+        
+        print(f"✓ Portable mode enabled - working directory: {app_dir}")
+        return True
+    
+    return False
+
+
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
@@ -60,6 +112,9 @@ shared_memory = None
 
 if __name__ == "__main__":
     print("Запуск программы...")
+    
+    # Настройка портативного режима
+    setup_portable_environment()
     
     print("Создание QApplication...")
     app = QApplication(sys.argv)

@@ -36,8 +36,15 @@ DisableProgramGroupPage=yes
 DisableReadyPage=no
 DisableFinishedPage=no
 DisableWelcomePage=no
-
 CreateAppDir=yes
+VersionInfoVersion=1.0.0.0
+VersionInfoCompany=UTILHELP Team
+VersionInfoDescription=UTILHELP Setup - Universal Windows Helper
+VersionInfoTextVersion=1.0
+VersionInfoCopyright=Copyright (C) 2026 UTILHELP Team
+VersionInfoProductName=UTILHELP
+VersionInfoProductVersion=1.0.0.0
+VersionInfoProductTextVersion=1.0
 
 [Languages]
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
@@ -49,7 +56,7 @@ Name: "startmenu"; Description: "Создать ярлык в меню Пуск"
 
 [Files]
 Source: "..\dist\UTILHELP\UTILHELP.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\UTILHELP\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "LICENSE"
+Source: "..\dist\UTILHELP\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "LICENSE,PORTABLE_MODE.txt"
 Source: "..\Icons\utilhelp.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\version.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}\docs"; Flags: ignoreversion
@@ -75,6 +82,7 @@ Type: filesandordirs; Name: "{localappdata}\Temp\UTILHELP"
 Type: filesandordirs; Name: "{localappdata}\Temp\UH"
 Type: files; Name: "{app}\*.log"
 Type: files; Name: "{app}\*.tmp"
+Type: files; Name: "{app}\PORTABLE_MODE.txt"
 
 [Code]
 function InitializeSetup(): Boolean;
@@ -262,9 +270,65 @@ begin
   Result := '';
 end;
 
-function InitializeUninstall(): Boolean;
+function IsProcessRunning(ProcessName: String): Boolean;
+var
+  ResultCode: Integer;
+  WbemLocator, WbemServices, WbemObjectSet: Variant;
 begin
-  Result := True;
+  Result := False;
+  try
+    WbemLocator := CreateOleObject('WbemScripting.SWbemLocator');
+    WbemServices := WbemLocator.ConnectServer('localhost', 'root\cimv2');
+    WbemObjectSet := WbemServices.ExecQuery('SELECT * FROM Win32_Process WHERE Name="' + ProcessName + '"');
+    
+    if WbemObjectSet.Count > 0 then
+      Result := True;
+  except
+    if Exec('cmd', '/c tasklist /FI "IMAGENAME eq ' + ProcessName + '" | find /I "' + ProcessName + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    begin
+      Result := (ResultCode = 0);
+    end;
+  end;
+end;
+
+function InitializeUninstall(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  if IsProcessRunning('UTILHELP.exe') then
+  begin
+    if MsgBox('UTILHELP в данный момент запущен. Для продолжения удаления необходимо закрыть программу.' + #13#10#13#10 + 
+              'Закрыть UTILHELP и продолжить удаление?', 
+              mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      if Exec('taskkill', '/f /im UTILHELP.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+      begin
+        Sleep(2000);
+        
+        if IsProcessRunning('UTILHELP.exe') then
+        begin
+          MsgBox('Не удалось закрыть UTILHELP. Пожалуйста, закройте программу вручную и повторите попытку удаления.', 
+                 mbError, MB_OK);
+          Result := False;
+        end
+        else
+        begin
+          MsgBox('UTILHELP успешно закрыт. Продолжаем удаление...', mbInformation, MB_OK);
+          Result := True;
+        end;
+      end
+      else
+      begin
+        MsgBox('Не удалось закрыть UTILHELP. Пожалуйста, закройте программу вручную и повторите попытку удаления.', 
+               mbError, MB_OK);
+        Result := False;
+      end;
+    end
+    else
+      Result := False;
+  end
+  else
+    Result := True;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
