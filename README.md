@@ -69,18 +69,6 @@
 
 ---
 
-## 📊 Статистика проекта
-
-<div align="center">
-
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/al1ster13/UTILHELP?style=for-the-badge)
-![GitHub last commit](https://img.shields.io/github/last-commit/al1ster13/UTILHELP?style=for-the-badge)
-![GitHub repo size](https://img.shields.io/github/repo-size/al1ster13/UTILHELP?style=for-the-badge)
-
-</div>
-
----
-
 ## 🖼️ Скриншоты
 
 <div align="center">
@@ -297,38 +285,6 @@ build_installer.bat
 4. Загрузка новых файлов требует постоянного интернета
 
 </details>
-
----
-
-## 🔧 Устранение неполадок
-
-### Частые проблемы и решения
-
-| Проблема | Причина | Решение |
-|----------|---------|---------|
-| Не запускается | Блокировка антивируса | Добавьте в исключения антивируса |
-| Медленное сканирование | Антивирус замедляет | Временно отключите антивирус |
-| Не определяются программы | Устаревший кэш | Нажмите кнопку сканирования (⟲) |
-| Не сохраняются настройки | Защита папки | Запустите от имени администратора |
-| Ошибка загрузки данных | Нет интернета | Проверьте подключение к интернету |
-
----
-
-## 📄 Лицензия
-
-Этот проект распространяется под лицензией MIT. Подробности в файле [LICENSE](LICENSE).
-
-```
-MIT License
-
-Copyright (c) 2026 al1ster13
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software...
-```
 
 ---
 
