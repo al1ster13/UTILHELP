@@ -177,14 +177,13 @@ class LoadingWidget(QWidget):
         self.progress_label.setText("100%")
         self.retry_button.hide()
         
-        # Скрываем виджет через 1 секунду
         QTimer.singleShot(1000, self.hide)
     
     def start_loading_animation(self):
         """Запуск анимации загрузки"""
         self.animation_timer = QTimer()
         self.animation_timer.timeout.connect(self.animate_loading)
-        self.animation_timer.start(500)  # Каждые 500мс
+        self.animation_timer.start(500)  
         self.animation_step = 0
     
     def animate_loading(self):

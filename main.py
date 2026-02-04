@@ -31,36 +31,82 @@ def is_portable_mode():
 
 def get_app_data_dir():
     """Получение папки для данных приложения"""
+    import sys
+    
+    # Получаем путь к папке с программой
+    if getattr(sys, 'frozen', False):
+        app_dir = os.path.dirname(sys.executable)
+    else:
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+    
     if is_portable_mode():
         # В портативном режиме используем папку программы
-        if getattr(sys, 'frozen', False):
-            return os.path.dirname(sys.executable)
-        else:
-            return os.path.dirname(os.path.abspath(__file__))
+        return app_dir
     else:
-        # В обычном режиме используем текущую папку
-        return os.getcwd()
+        # В обычном режиме пробуем использовать AppData
+        try:
+            appdata = os.environ.get('APPDATA')
+            if appdata:
+                utilhelp_data = os.path.join(appdata, 'UTILHELP')
+                os.makedirs(utilhelp_data, exist_ok=True)
+                # Проверяем права на запись
+                test_file = os.path.join(utilhelp_data, 'test_write.tmp')
+                try:
+                    with open(test_file, 'w') as f:
+                        f.write('test')
+                    os.remove(test_file)
+                    print(f"✓ Using AppData directory: {utilhelp_data}")
+                    return utilhelp_data
+                except:
+                    print("✗ AppData not writable, using app directory")
+                    pass
+        except:
+            pass
+        
+        # Если AppData не работает, используем папку программы
+        print(f"✓ Using app directory: {app_dir}")
+        return app_dir
 
 
 def setup_portable_environment():
     """Настройка окружения для портативного режима"""
-    if is_portable_mode():
-        app_dir = get_app_data_dir()
-        
-        # Создаем необходимые папки
-        data_dir = os.path.join(app_dir, "data")
-        uhdownload_dir = os.path.join(app_dir, "UHDOWNLOAD")
-        
+    app_data_dir = get_app_data_dir()
+    
+    # Создаем необходимые папки
+    data_dir = os.path.join(app_data_dir, "data")
+    uhdownload_dir = os.path.join(app_data_dir, "UHDOWNLOAD")
+    
+    try:
         os.makedirs(data_dir, exist_ok=True)
         os.makedirs(uhdownload_dir, exist_ok=True)
         
-        # Меняем рабочую директорию на папку программы
-        os.chdir(app_dir)
+        # Проверяем права на запись
+        test_file = os.path.join(data_dir, 'test_write.tmp')
+        with open(test_file, 'w') as f:
+            f.write('test')
+        os.remove(test_file)
         
-        print(f"✓ Portable mode enabled - working directory: {app_dir}")
+        print(f"✓ Data directories created: {app_data_dir}")
+        
+        if is_portable_mode():
+            # В портативном режиме меняем рабочую директорию
+            os.chdir(app_data_dir)
+            print(f"✓ Portable mode enabled - working directory: {app_data_dir}")
+        
         return True
-    
-    return False
+        
+    except Exception as e:
+        print(f"✗ Error setting up data directories: {e}")
+        # В крайнем случае используем временную папку
+        import tempfile
+        temp_data = os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
+        try:
+            os.makedirs(temp_data, exist_ok=True)
+            print(f"✓ Using temporary data directory: {temp_data}")
+            return True
+        except:
+            print("✗ Failed to create any data directory")
+            return False
 
 
 def is_admin():

@@ -4,13 +4,71 @@ from typing import Dict, Any
 from datetime import datetime
 
 
+def get_data_dir():
+    """Получить папку для данных приложения"""
+    import sys
+    
+    # Проверяем портативный режим
+    if getattr(sys, 'frozen', False):
+        app_dir = os.path.dirname(sys.executable)
+    else:
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    portable_marker = os.path.join(app_dir, "PORTABLE_MODE.txt")
+    
+    if os.path.exists(portable_marker):
+        # Портативный режим - используем папку программы
+        data_dir = os.path.join(app_dir, "data")
+    else:
+        # Обычный режим - используем AppData или папку программы
+        try:
+            # Пробуем использовать AppData
+            appdata = os.environ.get('APPDATA')
+            if appdata:
+                utilhelp_data = os.path.join(appdata, 'UTILHELP')
+                os.makedirs(utilhelp_data, exist_ok=True)
+                # Проверяем права на запись
+                test_file = os.path.join(utilhelp_data, 'test_write.tmp')
+                try:
+                    with open(test_file, 'w') as f:
+                        f.write('test')
+                    os.remove(test_file)
+                    data_dir = utilhelp_data
+                except:
+                    # Если AppData не работает, используем папку программы
+                    data_dir = os.path.join(app_dir, "data")
+            else:
+                data_dir = os.path.join(app_dir, "data")
+        except:
+            data_dir = os.path.join(app_dir, "data")
+    
+    try:
+        os.makedirs(data_dir, exist_ok=True)
+        # Проверяем права на запись
+        test_file = os.path.join(data_dir, 'test_write.tmp')
+        with open(test_file, 'w') as f:
+            f.write('test')
+        os.remove(test_file)
+        return data_dir
+    except Exception as e:
+        print(f"Ошибка создания папки данных: {e}")
+        # В крайнем случае используем временную папку
+        import tempfile
+        temp_data = os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
+        os.makedirs(temp_data, exist_ok=True)
+        return temp_data
+
+
 class SettingsManager:
     """Менеджер настроек программы в JSON формате"""
     
     def __init__(self):
-        os.makedirs("data", exist_ok=True)
-        self.settings_file = os.path.join("data", "settings.json")
-        self.scan_cache_file = os.path.join("data", "scan_cache.json")
+        self.data_dir = get_data_dir()
+        self.settings_file = os.path.join(self.data_dir, "settings.json")
+        self.scan_cache_file = os.path.join(self.data_dir, "scan_cache.json")
+        
+        print(f"Используется папка данных: {self.data_dir}")
+        
         self.default_settings = {
             "version": "1.0",
             "auto_scan_enabled": True,
@@ -147,22 +205,25 @@ class SettingsManager:
     def migrate_from_db(self):
         """Миграция настроек из старой SQLite базы (если есть)"""
         try:
-            old_db_path = "settings.db"
-            if os.path.exists(old_db_path):
-                print("Найдена старая база настроек settings.db")
-                os.makedirs("data", exist_ok=True)
-                backup_path = os.path.join("data", "settings.db.backup")
-                if not os.path.exists(backup_path):
-                    os.rename(old_db_path, backup_path)
-                    print("Старая база перенесена в data/settings.db.backup")
+            # Проверяем старые пути
+            old_paths = [
+                "settings.db",
+                os.path.join("data", "settings.db"),
+                os.path.join(self.data_dir, "settings.db")
+            ]
             
-            data_db_path = os.path.join("data", "settings.db")
-            if os.path.exists(data_db_path):
-                print("Найдена старая база настроек в data/settings.db")
-                backup_path = os.path.join("data", "settings.db.backup")
-                if not os.path.exists(backup_path):
-                    os.rename(data_db_path, backup_path)
-                    print("Старая база переименована в data/settings.db.backup")
+            for old_db_path in old_paths:
+                if os.path.exists(old_db_path):
+                    print(f"Найдена старая база настроек: {old_db_path}")
+                    backup_path = os.path.join(self.data_dir, "settings.db.backup")
+                    if not os.path.exists(backup_path):
+                        try:
+                            if old_db_path != backup_path:
+                                os.rename(old_db_path, backup_path)
+                                print(f"Старая база перенесена в {backup_path}")
+                        except Exception as e:
+                            print(f"Ошибка переноса базы: {e}")
+                            
         except Exception as e:
             print(f"Ошибка миграции: {e}")
 

@@ -6,9 +6,70 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 
 GITHUB_PAGES_URL = "https://al1ster13.github.io/utilhelp-data/"
-
-CACHE_DIR = "cache"  
 CACHE_DURATION = timedelta(hours=1)  
+
+
+def get_data_dir():
+    """Получить папку для данных приложения"""
+    import sys
+    
+    # Проверяем портативный режим
+    if getattr(sys, 'frozen', False):
+        app_dir = os.path.dirname(sys.executable)
+    else:
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    portable_marker = os.path.join(app_dir, "PORTABLE_MODE.txt")
+    
+    if os.path.exists(portable_marker):
+        # Портативный режим - используем папку программы
+        return app_dir
+    else:
+        # Обычный режим - используем AppData или текущую папку
+        try:
+            # Пробуем использовать AppData
+            appdata = os.environ.get('APPDATA')
+            if appdata:
+                utilhelp_data = os.path.join(appdata, 'UTILHELP')
+                os.makedirs(utilhelp_data, exist_ok=True)
+                # Проверяем права на запись
+                test_file = os.path.join(utilhelp_data, 'test_write.tmp')
+                try:
+                    with open(test_file, 'w') as f:
+                        f.write('test')
+                    os.remove(test_file)
+                    return utilhelp_data
+                except:
+                    pass
+            
+            # Если AppData не работает, используем папку программы
+            return app_dir
+            
+        except:
+            # В крайнем случае используем папку программы
+            return app_dir
+
+
+def get_cache_dir():
+    """Получить папку для кэша"""
+    data_dir = get_data_dir()
+    cache_dir = os.path.join(data_dir, "cache")
+    
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+        # Проверяем права на запись
+        test_file = os.path.join(cache_dir, 'test_write.tmp')
+        with open(test_file, 'w') as f:
+            f.write('test')
+        os.remove(test_file)
+        return cache_dir
+    except Exception as e:
+        print(f"Ошибка создания папки кэша: {e}")
+        # Используем временную папку
+        import tempfile
+        temp_cache = os.path.join(tempfile.gettempdir(), 'UTILHELP_cache')
+        os.makedirs(temp_cache, exist_ok=True)
+        return temp_cache  
 
 
 class DataLoader(QThread):
@@ -26,7 +87,9 @@ class DataLoader(QThread):
             'news': []
         }
         
-        os.makedirs(CACHE_DIR, exist_ok=True)
+        # Получаем безопасную папку для кэша
+        self.cache_dir = get_cache_dir()
+        print(f"Используется папка кэша: {self.cache_dir}")
     
     def run(self):
         """Загрузка данных"""
@@ -92,7 +155,7 @@ class DataLoader(QThread):
     def load_from_cache(self):
         """Загружает данные из кэша если они свежие"""
         try:
-            cache_time_file = os.path.join(CACHE_DIR, "cache_time.txt")
+            cache_time_file = os.path.join(self.cache_dir, "cache_time.txt")
             
             if os.path.exists(cache_time_file):
                 with open(cache_time_file, 'r') as f:
@@ -100,7 +163,7 @@ class DataLoader(QThread):
                     
                 if datetime.now() - cache_time < CACHE_DURATION:
                     for data_type in ['programs', 'drivers', 'news']:
-                        cache_file = os.path.join(CACHE_DIR, f"{data_type}.json")
+                        cache_file = os.path.join(self.cache_dir, f"{data_type}.json")
                         if os.path.exists(cache_file):
                             with open(cache_file, 'r', encoding='utf-8') as f:
                                 data = json.load(f)
@@ -118,11 +181,11 @@ class DataLoader(QThread):
     def save_to_cache(self, data_type, data):
         """Сохраняет данные в кэш"""
         try:
-            cache_file = os.path.join(CACHE_DIR, f"{data_type}.json")
+            cache_file = os.path.join(self.cache_dir, f"{data_type}.json")
             with open(cache_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             
-            cache_time_file = os.path.join(CACHE_DIR, "cache_time.txt")
+            cache_time_file = os.path.join(self.cache_dir, "cache_time.txt")
             with open(cache_time_file, 'w') as f:
                 f.write(datetime.now().isoformat())
                 
@@ -253,9 +316,10 @@ class JsonDataManager:
     def clear_cache(self):
         """Очистить кэш"""
         try:
+            cache_dir = get_cache_dir()
             cache_files = ['programs.json', 'drivers.json', 'news.json', 'cache_time.txt']
             for filename in cache_files:
-                cache_file = os.path.join(CACHE_DIR, filename)
+                cache_file = os.path.join(cache_dir, filename)
                 if os.path.exists(cache_file):
                     os.remove(cache_file)
             print("✓ Кэш очищен")

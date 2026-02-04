@@ -29,7 +29,7 @@ class CustomMessageDialog(QDialog):
         
         background = QWidget()
         background.setStyleSheet("""
-            backgrouЁnd-color: #2d2d2d;
+            background-color: #2d2d2d;
             border-radius: 15px;
             border: 1px solid #404040;
         """)
@@ -216,7 +216,6 @@ class CustomMessageDialog(QDialog):
     def showEvent(self, event):
         """Обработка события показа окна"""
         super().showEvent(event)
-        # Анимация появления
         self.opacity_effect.setOpacity(0.0)
         self.fade_animation.setStartValue(0.0)
         self.fade_animation.setEndValue(1.0)
