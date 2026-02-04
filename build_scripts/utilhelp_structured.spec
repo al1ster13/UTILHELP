@@ -7,12 +7,12 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('../Icons', 'assets/icons'),           # Системные иконки (включая новые: utilhelplogo24.png)
-        ('../ProgramImages', 'assets/programs'), # Картинки программ
-        ('../version.txt', '.'),                # Файл версии в корень
-        ('../docs/INSTALL_INFO.md', 'docs'),    # Информация для установщика
-        ('../docs/COPYRIGHT.md', 'docs'),       # Документы в docs/
-        ('../LICENSE', '.'),                    # LICENSE в корневую папку
+        ('../Icons', 'assets/icons'),           # System icons (including new ones: utilhelplogo24.png)
+        ('../ProgramImages', 'assets/programs'), # Program images
+        ('../version.txt', '.'),                # Version file in root
+        ('../docs/INSTALL_INFO.md', 'docs'),    # Installer information
+        ('../docs/COPYRIGHT.md', 'docs'),       # Documents in docs/
+        ('../LICENSE', '.'),                    # LICENSE in root folder
     ],
     hiddenimports=[
         'subprocess',
@@ -48,7 +48,15 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'tkinter',      # Exclude unnecessary modules
+        'matplotlib',
+        'numpy',
+        'scipy',
+        'pandas',
+        'PIL',
+        'cv2',
+    ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -66,7 +74,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,  # Отключаем UPX - главная причина false positives
+    upx=False,  # Disable UPX - main cause of false positives
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -74,6 +82,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='../Icons/utilhelp.ico',
+    version='../version_info.txt',  # Add version information
 )
 
 coll = COLLECT(
@@ -82,7 +91,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=False,  # Отключаем UPX
+    upx=False,  # Disable UPX
     upx_exclude=[],
     name='UTILHELP'
 )

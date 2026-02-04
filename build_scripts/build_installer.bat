@@ -14,15 +14,13 @@ REM Check if Inno Setup exists
 if not exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" (
     echo ERROR: Inno Setup 6 not found!
     echo Download and install Inno Setup from https://jrsoftware.org/isdl.php
-    pause
     exit /b 1
 )
 
 REM Check if executable exists
 if not exist "dist\UTILHELP\UTILHELP.exe" (
     echo ERROR: Compiled program not found!
-    echo First run build_final.bat to create exe file
-    pause
+    echo First run 1_build.bat to create exe file
     exit /b 1
 )
 
@@ -42,13 +40,6 @@ if %ERRORLEVEL% EQU 0 (
     echo ========================================
     echo.
     echo Installer file: installer_output\UTILHELP_Setup_v1.0.exe
-    echo.
-    
-    REM Open output folder
-    explorer installer_output
-    
-    echo Press any key to exit...
-    pause >nul
 ) else (
     echo.
     echo ========================================
@@ -56,5 +47,5 @@ if %ERRORLEVEL% EQU 0 (
     echo ========================================
     echo.
     echo Check utilhelp_installer.iss file for errors
-    pause
+    exit /b 1
 )
