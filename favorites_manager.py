@@ -7,7 +7,15 @@ class FavoritesManager:
     """Менеджер для работы с избранными программами и драйверами"""
     
     def __init__(self):
-        self.favorites_file = "UHDOWNLOAD/favorites.json"
+        # Получаем путь к папке данных
+        appdata = os.environ.get('APPDATA')
+        if appdata:
+            data_dir = os.path.join(appdata, 'UTILHELP', 'data')
+        else:
+            data_dir = "data"
+        
+        os.makedirs(data_dir, exist_ok=True)
+        self.favorites_file = os.path.join(data_dir, "favorites.json")
         self.favorites = self._load_favorites()
     
     def _load_favorites(self) -> Dict[str, List[str]]:

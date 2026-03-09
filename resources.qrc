@@ -1,0 +1,109 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/icons">
+        <!-- System Icons -->
+        <file>Icons/books.png</file>
+        <file>Icons/box.png</file>
+        <file>Icons/button download.png</file>
+        <file>Icons/calendar.png</file>
+        <file>Icons/cancel.png</file>
+        <file>Icons/closemenu.png</file>
+        <file>Icons/complete.png</file>
+        <file>Icons/completenotif.png</file>
+        <file>Icons/contacts.png</file>
+        <file>Icons/delete.png</file>
+        <file>Icons/deletelibrary.png</file>
+        <file>Icons/email.png</file>
+        <file>Icons/error.png</file>
+        <file>Icons/errornotif.png</file>
+        <file>Icons/fallbackbox.png</file>
+        <file>Icons/file.png</file>
+        <file>Icons/filesize.png</file>
+        <file>Icons/github.png</file>
+        <file>Icons/info.png</file>
+        <file>Icons/infologo.png</file>
+        <file>Icons/installed.png</file>
+        <file>Icons/installer.png</file>
+        <file>Icons/installer2.png</file>
+        <file>Icons/interface.png</file>
+        <file>Icons/language.png</file>
+        <file>Icons/logo64x64.png</file>
+        <file>Icons/minimizemenu.png</file>
+        <file>Icons/notification.png</file>
+        <file>Icons/notificationsound.png</file>
+        <file>Icons/opensize.png</file>
+        <file>Icons/preparation.png</file>
+        <file>Icons/settings.png</file>
+        <file>Icons/snowflake.png</file>
+        <file>Icons/speed.png</file>
+        <file>Icons/telegram.png</file>
+        <file>Icons/tempfile.png</file>
+        <file>Icons/time.png</file>
+        <file>Icons/unwrapmenu.png</file>
+        <file>Icons/update.png</file>
+        <file>Icons/updatenotif.png</file>
+        <file>Icons/updatetab.png</file>
+        <file>Icons/utilhelp.ico</file>
+        <file>Icons/utilhelp14x14.png</file>
+        <file>Icons/utilhelplogo24.png</file>
+        <file>Icons/whitetheme.png</file>
+        <file>Icons/icontab.png</file>
+        <file>Icons/iconlist.png</file>
+    </qresource>
+    
+    <qresource prefix="/programs">
+        <!-- Program Images -->
+        <file>ProgramImages/.NET Framework.png</file>
+        <file>ProgramImages/7-ZIP.png</file>
+        <file>ProgramImages/AIMP.png</file>
+        <file>ProgramImages/AMD_Adrenalin_Software.png</file>
+        <file>ProgramImages/AMD_Ryzen_Master.png</file>
+        <file>ProgramImages/BATTLE.NET.png</file>
+        <file>ProgramImages/Brave_Browser.png</file>
+        <file>ProgramImages/CPU-Z.png</file>
+        <file>ProgramImages/Crystal_Disk_Info.png</file>
+        <file>ProgramImages/DirectX.png</file>
+        <file>ProgramImages/EPIC-GAMES.png</file>
+        <file>ProgramImages/Foobar2000.png</file>
+        <file>ProgramImages/Free Download Manager.png</file>
+        <file>ProgramImages/GIMP.png</file>
+        <file>ProgramImages/GOG-GALAXY.png</file>
+        <file>ProgramImages/Google_Chrome.png</file>
+        <file>ProgramImages/GPU-Z.png</file>
+        <file>ProgramImages/HWMONITOR.png</file>
+        <file>ProgramImages/INKSCAPE.png</file>
+        <file>ProgramImages/Intel_Driver.png</file>
+        <file>ProgramImages/Java.png</file>
+        <file>ProgramImages/KRITA.png</file>
+        <file>ProgramImages/LibreOffice.png</file>
+        <file>ProgramImages/MSI-AFTERBURNER.png</file>
+        <file>ProgramImages/notepad++.png</file>
+        <file>ProgramImages/NVIDIA_Geforce.png</file>
+        <file>ProgramImages/OBSIDIAN.png</file>
+        <file>ProgramImages/OpenAL.png</file>
+        <file>ProgramImages/Opera_GX.png</file>
+        <file>ProgramImages/Opera.png</file>
+        <file>ProgramImages/PeaZip.png</file>
+        <file>ProgramImages/PhysX.png</file>
+        <file>ProgramImages/QBitTorrent.png</file>
+        <file>ProgramImages/Rufus.png</file>
+        <file>ProgramImages/STEAM.png</file>
+        <file>ProgramImages/Tor_Browser.png</file>
+        <file>ProgramImages/UBISOFT.png</file>
+        <file>ProgramImages/uTorrent.png</file>
+        <file>ProgramImages/Visual_Studio_Code.png</file>
+        <file>ProgramImages/VisualC++.png</file>
+        <file>ProgramImages/Vivaldi.png</file>
+        <file>ProgramImages/VLC.png</file>
+        <file>ProgramImages/WinRAR.png</file>
+        <file>ProgramImages/XnView_MP.png</file>
+        <file>ProgramImages/Yandex_Browser.png</file>
+        <file>ProgramImages/Yandex_Music.png</file>
+    </qresource>
+    
+    <qresource prefix="/sounds">
+        <!-- Notification Sounds -->
+        <file>notification/utilhelp-notification.wav</file>
+        <file>notification/utilhelp-notification-error.wav</file>
+    </qresource>
+</RCC>

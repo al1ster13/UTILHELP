@@ -3,51 +3,11 @@ import json
 import os
 from datetime import datetime, timedelta
 from PyQt6.QtCore import QThread, pyqtSignal
+from settings_manager import get_data_dir
 
 
 GITHUB_PAGES_URL = "https://al1ster13.github.io/utilhelp-data/"
 CACHE_DURATION = timedelta(hours=1)  
-
-
-def get_data_dir():
-    """Получить папку для данных приложения"""
-    import sys
-    
-    # Проверяем портативный режим
-    if getattr(sys, 'frozen', False):
-        app_dir = os.path.dirname(sys.executable)
-    else:
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    portable_marker = os.path.join(app_dir, "PORTABLE_MODE.txt")
-    
-    if os.path.exists(portable_marker):
-        # Портативный режим - используем папку программы
-        return app_dir
-    else:
-        # Обычный режим - используем AppData или текущую папку
-        try:
-            # Пробуем использовать AppData
-            appdata = os.environ.get('APPDATA')
-            if appdata:
-                utilhelp_data = os.path.join(appdata, 'UTILHELP')
-                os.makedirs(utilhelp_data, exist_ok=True)
-                # Проверяем права на запись
-                test_file = os.path.join(utilhelp_data, 'test_write.tmp')
-                try:
-                    with open(test_file, 'w') as f:
-                        f.write('test')
-                    os.remove(test_file)
-                    return utilhelp_data
-                except:
-                    pass
-            
-            # Если AppData не работает, используем папку программы
-            return app_dir
-            
-        except:
-            # В крайнем случае используем папку программы
-            return app_dir
 
 
 def get_cache_dir():
@@ -57,7 +17,6 @@ def get_cache_dir():
     
     try:
         os.makedirs(cache_dir, exist_ok=True)
-        # Проверяем права на запись
         test_file = os.path.join(cache_dir, 'test_write.tmp')
         with open(test_file, 'w') as f:
             f.write('test')
@@ -90,6 +49,55 @@ class DataLoader(QThread):
         # Получаем безопасную папку для кэша
         self.cache_dir = get_cache_dir()
         print(f"Используется папка кэша: {self.cache_dir}")
+    
+    def validate_program_data(self, program):
+        """Валидация данных программы"""
+        required_fields = ['name', 'category', 'status', 'url', 'description']
+        
+        if not isinstance(program, dict):
+            raise ValueError("Программа должна быть словарем")
+            
+        for field in required_fields:
+            if field not in program:
+                raise ValueError(f"Отсутствует обязательное поле: {field}")
+            if not program[field] or not isinstance(program[field], str):
+                raise ValueError(f"Поле {field} должно быть непустой строкой")
+        
+        if not program['url'].startswith(('http://', 'https://')):
+            raise ValueError(f"Некорректный URL: {program['url']}")
+            
+        return True
+    
+    def validate_driver_data(self, driver):
+        """Валидация данных драйвера"""
+        required_fields = ['name', 'category', 'status', 'url', 'description']
+        
+        if not isinstance(driver, dict):
+            raise ValueError("Драйвер должен быть словарем")
+            
+        for field in required_fields:
+            if field not in driver:
+                raise ValueError(f"Отсутствует обязательное поле: {field}")
+            if not driver[field] or not isinstance(driver[field], str):
+                raise ValueError(f"Поле {field} должно быть непустой строкой")
+        
+        if not driver['url'].startswith(('http://', 'https://')):
+            raise ValueError(f"Некорректный URL: {driver['url']}")
+            
+        return True
+    
+    def validate_news_data(self, news_item):
+        """Валидация данных новости"""
+        required_fields = ['title', 'date', 'content']
+        
+        if not isinstance(news_item, dict):
+            raise ValueError("Новость должна быть словарем")
+            
+        for field in required_fields:
+            if field not in news_item:
+                raise ValueError(f"Отсутствует обязательное поле: {field}")
+                
+        return True
     
     def run(self):
         """Загрузка данных"""
@@ -143,14 +151,33 @@ class DataLoader(QThread):
             response = requests.get(url, timeout=10)
             
             if response.status_code == 200:
-                return response.json()
+                data = response.json()
+                
+                # Валидируем загруженные данные
+                if data_type in data and isinstance(data[data_type], list):
+                    for item in data[data_type]:
+                        try:
+                            if data_type == 'programs':
+                                self.validate_program_data(item)
+                            elif data_type == 'drivers':
+                                self.validate_driver_data(item)
+                            elif data_type == 'news':
+                                self.validate_news_data(item)
+                        except ValueError as ve:
+                            print(f"Предупреждение: некорректные данные в {data_type}: {ve}")
+                            # Пропускаем некорректный элемент, но продолжаем
+                            continue
+                
+                return data
             else:
                 raise Exception(f"HTTP {response.status_code}")
                 
         except requests.RequestException as e:
-            raise Exception(f"Нет подключения к интернету")
+            raise Exception(f"Нет подключения к интернету: {str(e)}")
         except json.JSONDecodeError as e:
-            raise Exception(f"Ошибка формата данных")
+            raise Exception(f"Ошибка формата данных: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Ошибка загрузки данных: {str(e)}")
     
     def load_from_cache(self):
         """Загружает данные из кэша если они свежие"""

@@ -1,86 +1,144 @@
+"""
+Оптимизированная версия сканера системы с улучшенной производительностью
+"""
 import winreg
 import os
 import subprocess
 import re
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from settings_manager import settings_manager
 from PyQt6.QtCore import QThread, pyqtSignal
+from logger import log_info, log_error, log_warning, log_debug
 
 
-class SystemScanner:
-    """Сканер установленных программ и драйверов в системе"""
+class OptimizedSystemScanner:
+    """Оптимизированный сканер установленных программ и драйверов"""
     
     def __init__(self):
         self.installed_programs = set()
         self.installed_drivers = set()
         self.program_versions = {}
         self.driver_versions = {}
+        self._program_index = {}  # Индекс для быстрого поиска
     
     def scan_installed_programs(self) -> Set[str]:
-        """Сканирование установленных программ через реестр Windows"""
-        programs = set()
-        versions = {}
-        
+        """Параллельное сканирование установленных программ через реестр"""
         registry_paths = [
             (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
             (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
             (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall")
         ]
         
-        for hkey, path in registry_paths:
-            try:
-                with winreg.OpenKey(hkey, path) as key:
-                    for i in range(winreg.QueryInfoKey(key)[0]):
-                        try:
-                            subkey_name = winreg.EnumKey(key, i)
-                            with winreg.OpenKey(key, subkey_name) as subkey:
-                                try:
-                                    display_name = winreg.QueryValueEx(subkey, "DisplayName")[0]
-                                    if display_name and len(display_name.strip()) > 2:
-                                        programs.add(display_name.strip())
-                                        
-                                        try:
-                                            version = winreg.QueryValueEx(subkey, "DisplayVersion")[0]
-                                            if version:
-                                                versions[display_name.strip()] = version.strip()
-                                        except FileNotFoundError:
-                                            pass
-                                            
-                                except FileNotFoundError:
-                                    pass
-                        except (OSError, FileNotFoundError):
-                            continue
-            except (OSError, FileNotFoundError):
-                continue
+        programs = set()
+        versions = {}
+        
+        # Параллельное сканирование разных веток реестра
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {
+                executor.submit(self._scan_registry_key, hkey, path): (hkey, path)
+                for hkey, path in registry_paths
+            }
+            
+            for future in as_completed(futures):
+                try:
+                    key_programs, key_versions = future.result()
+                    programs.update(key_programs)
+                    versions.update(key_versions)
+                except Exception as e:
+                    log_error(f"Error scanning registry key: {e}")
         
         self.installed_programs = programs
         self.program_versions = versions
+        self._build_program_index()  # Создаем индекс для быстрого поиска
+        
+        log_info(f"Found {len(programs)} installed programs")
         return programs
     
+    def _scan_registry_key(self, hkey: int, path: str) -> Tuple[Set[str], Dict[str, str]]:
+        """Сканирование одной ветки реестра"""
+        programs = set()
+        versions = {}
+        
+        try:
+            with winreg.OpenKey(hkey, path) as key:
+                num_subkeys = winreg.QueryInfoKey(key)[0]
+                
+                for i in range(num_subkeys):
+                    try:
+                        subkey_name = winreg.EnumKey(key, i)
+                        with winreg.OpenKey(key, subkey_name) as subkey:
+                            try:
+                                display_name = winreg.QueryValueEx(subkey, "DisplayName")[0]
+                                if display_name and len(display_name.strip()) > 2:
+                                    clean_name = display_name.strip()
+                                    programs.add(clean_name)
+                                    
+                                    # Получаем версию если есть
+                                    try:
+                                        version = winreg.QueryValueEx(subkey, "DisplayVersion")[0]
+                                        if version:
+                                            versions[clean_name] = version.strip()
+                                    except FileNotFoundError:
+                                        pass
+                            except FileNotFoundError:
+                                pass
+                    except (OSError, FileNotFoundError):
+                        continue
+        except (OSError, FileNotFoundError) as e:
+            log_warning(f"Could not open registry key {path}: {e}")
+        
+        return programs, versions
+    
+    def _build_program_index(self):
+        """Создание индекса для быстрого поиска программ"""
+        self._program_index = {}
+        
+        # Словарь для транслитерации ключевых слов
+        transliteration = {
+            'яндекс': 'yandex',
+            'музыка': 'music',
+            'браузер': 'browser'
+        }
+        
+        for program in self.installed_programs:
+            # Индексируем по ключевым словам
+            words = self._extract_key_words(program.lower())
+            for word in words:
+                if word not in self._program_index:
+                    self._program_index[word] = []
+                self._program_index[word].append(program)
+                
+                if word in transliteration:
+                    trans_word = transliteration[word]
+                    if trans_word not in self._program_index:
+                        self._program_index[trans_word] = []
+                    self._program_index[trans_word].append(program)
+    
     def scan_installed_drivers(self) -> Set[str]:
-        """Сканирование установленных драйверов через PowerShell"""
+        """Оптимизированное сканирование драйверов через WMI"""
         drivers = set()
         versions = {}
         
         try:
+            # Используем более быстрый запрос WMI
             powershell_command = """
-            Get-WmiObject Win32_PnPSignedDriver | Where-Object {
-                $_.DeviceName -and 
-                $_.DriverVersion -and 
+            Get-CimInstance Win32_PnPSignedDriver -Filter "DeviceName IS NOT NULL AND DriverVersion IS NOT NULL" |
+            Where-Object {
                 $_.DeviceName -notlike "*Generic*" -and
                 $_.DeviceName -notlike "*Standard*" -and
                 $_.DeviceName -notlike "*Basic*" -and
                 $_.DeviceName -notlike "*Microsoft*" -and
                 $_.DeviceName -notlike "*Windows*"
-            } | Select-Object DeviceName, DriverVersion, DriverDate | 
-            ConvertTo-Json
+            } | Select-Object DeviceName, DriverVersion -First 100 |
+            ConvertTo-Json -Compress
             """
             
             result = subprocess.run(
-                ["powershell", "-Command", powershell_command],
+                ["powershell", "-NoProfile", "-Command", powershell_command],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=20,  # Уменьшен таймаут
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
             
@@ -100,20 +158,33 @@ class SystemScanner:
                         drivers.add(device_name)
                         if driver_data.get("DriverVersion"):
                             versions[device_name] = driver_data["DriverVersion"].strip()
-                except json.JSONDecodeError:
-                    pass
-        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
-            pass
+                except json.JSONDecodeError as e:
+                    log_error(f"Failed to parse driver data: {e}")
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError) as e:
+            log_error(f"Failed to scan drivers: {e}")
         
         self.installed_drivers = drivers
         self.driver_versions = versions
+        
+        log_info(f"Found {len(drivers)} installed drivers")
         return drivers
     
     def check_program_installed(self, program_name: str) -> Dict[str, any]:
-        """Проверка установлена ли конкретная программа"""
+        """Оптимизированная проверка установки программы с использованием индекса"""
         program_name_lower = program_name.lower()
         
-        for installed_program in self.installed_programs:
+        # Быстрый поиск через индекс
+        words = self._extract_key_words(program_name_lower)
+        candidates = set()
+        
+        for word in words:
+            if word in self._program_index:
+                candidates.update(self._program_index[word])
+        
+        if not candidates:
+            candidates = self.installed_programs
+        
+        for installed_program in candidates:
             installed_lower = installed_program.lower()
             
             if self._is_program_match(program_name_lower, installed_lower):
@@ -126,9 +197,10 @@ class SystemScanner:
         return {"installed": False, "exact_name": None, "version": None}
     
     def check_driver_installed(self, driver_name: str) -> Dict[str, any]:
-        """Проверка установлен ли конкретный драйвер или программа"""
+        """Оптимизированная проверка установки драйвера"""
         driver_name_lower = driver_name.lower()
         
+        # Специальная проверка для DirectX
         if 'directx' in driver_name_lower:
             if self._check_directx_installed():
                 return {
@@ -137,10 +209,12 @@ class SystemScanner:
                     "version": "Установлен"
                 }
         
+        # Сначала проверяем в программах (быстрее)
         program_result = self._check_in_programs(driver_name)
         if program_result["installed"]:
             return program_result
         
+        # Затем в драйверах
         driver_result = self._check_in_drivers(driver_name)
         if driver_result["installed"]:
             return driver_result
@@ -152,11 +226,21 @@ class SystemScanner:
         driver_name_lower = driver_name.lower()
         driver_words = set(self._extract_key_words(driver_name_lower))
         
-        candidates = []  
+        # Используем индекс для быстрого поиска
+        candidates = []
+        search_programs = set()
         
-        for installed_program in self.installed_programs:
+        for word in driver_words:
+            if word in self._program_index:
+                search_programs.update(self._program_index[word])
+        
+        if not search_programs:
+            search_programs = self.installed_programs
+        
+        for installed_program in search_programs:
             installed_lower = installed_program.lower()
             
+            # Специальная обработка для .NET
             if ('.net' in driver_name_lower or 'dotnet' in driver_name_lower) and '.net' in installed_lower:
                 if not self._has_exclusions(installed_lower, driver_name_lower):
                     candidates.append({
@@ -165,6 +249,7 @@ class SystemScanner:
                     })
                     continue
             
+            # Проверка совпадения ключевых слов
             if any(word in installed_lower for word in driver_words if len(word) > 2):
                 if not self._has_exclusions(installed_lower, driver_name_lower):
                     if self._is_relevant_match(driver_name_lower, installed_lower):
@@ -209,6 +294,7 @@ class SystemScanner:
         
         common_words = driver_words.intersection(installed_words)
         
+        # Специальные правила для известных драйверов
         if 'amd' in driver_name and 'adrenalin' in driver_name:
             return 'amd' in installed_name and ('settings' in installed_name or 'software' in installed_name)
         
@@ -221,6 +307,7 @@ class SystemScanner:
         if 'java' in driver_words:
             return 'java' in installed_name
         
+        # Общие правила
         if len(driver_words) <= 2:
             return len(common_words) >= 1
         
@@ -234,20 +321,19 @@ class SystemScanner:
         return len(common_words) >= max(1, len(driver_words) * 0.4)
     
     def _extract_key_words(self, name: str) -> List[str]:
-        """Извлечение ключевых слов из названия драйвера"""
+        """Извлечение ключевых слов из названия"""
         common_words = {'driver', 'drivers', 'suite', 'package', 'tool', 'tools', 
                        'utility', 'support', 'assistant', 'experience', 'control', 'panel',
                        'center', 'manager', 'application', 'program', 'system', 'windows'}
         
         name = name.replace('c++', 'cpp').replace('.net', 'dotnet')
-        
         cleaned = re.sub(r'[^\w\s]', ' ', name)
         words = [word.strip() for word in cleaned.split() if len(word) > 1 and word not in common_words]
         
         return words
     
     def _has_exclusions(self, installed_name: str, driver_name: str) -> bool:
-        """Проверка на исключения для избежания ложных срабатываний"""
+        """Проверка на исключения"""
         general_exclusions = ['basic', 'standard', 'generic', 'pnp']
         
         if not ('visual' in driver_name or '.net' in driver_name or 'dotnet' in driver_name):
@@ -269,7 +355,7 @@ class SystemScanner:
         return False
     
     def _calculate_relevance_score(self, driver_name: str, installed_name: str) -> float:
-        """Вычисление оценки релевантности для приоритизации результатов"""
+        """Вычисление оценки релевантности"""
         score = 0.0
         
         if driver_name in installed_name:
@@ -300,10 +386,31 @@ class SystemScanner:
         target_clean = self._clean_program_name(target_name)
         installed_clean = self._clean_program_name(installed_name)
         
-        if target_clean == "opera" and "gx" in installed_clean.lower():
-            return False  
-        if "opera gx" in target_clean.lower() and "gx" not in installed_clean.lower():
-            return False  
+        target_lower = target_clean.lower()
+        installed_lower = installed_clean.lower()
+        
+        # Специальные правила для Yandex программ
+        if "yandex" in target_lower or "яндекс" in target_lower:
+            # Yandex Browser - ищем просто "Yandex" или "Яндекс" без других слов
+            if "browser" in target_lower or "браузер" in target_lower:
+                if ("yandex" in installed_lower or "яндекс" in installed_lower):
+                    # Исключаем музыку и другие сервисы
+                    if not any(word in installed_lower for word in ["music", "музык", "кнопки", "сервис", "patcher"]):
+                        return True
+            
+            # Yandex Music - ищем "Яндекс Музыка" или "Yandex Music"
+            if "music" in target_lower or "музык" in target_lower:
+                if ("yandex" in installed_lower or "яндекс" in installed_lower):
+                    if "music" in installed_lower or "музык" in installed_lower:
+                        # Исключаем патчеры
+                        if "patcher" not in installed_lower and "mod" not in installed_lower:
+                            return True
+        
+        # Специальные правила для Opera
+        if target_clean == "opera" and "gx" in installed_lower:
+            return False
+        if "opera gx" in target_lower and "gx" not in installed_lower:
+            return False
         
         if target_clean == installed_clean:
             return True
@@ -317,32 +424,8 @@ class SystemScanner:
             common_words = target_words.intersection(installed_words)
             return len(common_words) >= max(2, len(target_words) * 0.6)
     
-    def _is_driver_match(self, target_name: str, installed_name: str) -> bool:
-        """Проверка соответствия названий драйверов"""
-        target_clean = self._clean_driver_name(target_name)
-        installed_clean = self._clean_driver_name(installed_name)
-        
-        if target_clean.lower() in installed_clean.lower() or installed_clean.lower() in target_clean.lower():
-            return True
-        
-        target_words = set(target_clean.lower().split())
-        installed_words = set(installed_clean.lower().split())
-        
-        key_brands = {'nvidia', 'amd', 'intel', 'realtek', 'qualcomm', 'broadcom', 'via', 'asus', 'msi', 'gigabyte'}
-        target_brands = target_words.intersection(key_brands)
-        installed_brands = installed_words.intersection(key_brands)
-        
-        if target_brands and installed_brands and target_brands.intersection(installed_brands):
-            return True
-        
-        common_words = target_words.intersection(installed_words)
-        if len(common_words) >= 1 and any(len(word) > 3 for word in common_words):
-            return True
-        
-        return False
-    
     def _clean_program_name(self, name: str) -> str:
-        """Очистка названия программы от лишних символов"""
+        """Очистка названия программы"""
         name = re.sub(r'\([^)]*\)', '', name)
         name = re.sub(r'\[[^\]]*\]', '', name)
         name = re.sub(r'\d+\.\d+[\.\d]*', '', name)
@@ -352,22 +435,9 @@ class SystemScanner:
         name = re.sub(r'\s+', ' ', name)
         return name.strip()
     
-    def _clean_driver_name(self, name: str) -> str:
-        """Очистка названия драйвера от лишних символов"""
-        name = re.sub(r'\([^)]*\)', '', name)
-        name = re.sub(r'\[[^\]]*\]', '', name)
-        name = re.sub(r'\b(driver|drivers|device|adapter|controller|software|suite|package)\b', '', name, flags=re.IGNORECASE)
-        name = re.sub(r'\b(adrenalin|geforce|experience|control|panel|center|utility|tool|tools)\b', '', name, flags=re.IGNORECASE)
-        name = re.sub(r'\d+\.\d+[\.\d]*', '', name)
-        name = re.sub(r'\b(x64|x86|32-bit|64-bit|32bit|64bit|win10|win11|windows)\b', '', name, flags=re.IGNORECASE)
-        name = re.sub(r'[^\w\s]', ' ', name)
-        name = re.sub(r'\s+', ' ', name)
-        return name.strip()
-    
     def _check_directx_installed(self) -> bool:
-        """Проверка установки DirectX через системные файлы"""
+        """Проверка установки DirectX"""
         try:
-            import os
             system32_path = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'System32')
             directx_files = ['d3d11.dll', 'd3d12.dll', 'dxgi.dll', 'xinput1_4.dll']
             
@@ -386,11 +456,25 @@ class SystemScanner:
         }
 
 
+# Обратная совместимость - экспортируем оптимизированные классы под старыми именами
+SystemScanner = OptimizedSystemScanner
+
+# Экспортируем все классы для использования в других модулях
+__all__ = [
+    'OptimizedSystemScanner',
+    'SystemScanner',
+    'InstallationStatusManager',
+    'BackgroundScanner',
+    'CachedInstallationStatusManager'
+]
+
+
+
 class InstallationStatusManager:
     """Менеджер статусов установки программ и драйверов"""
     
     def __init__(self):
-        self.scanner = SystemScanner()
+        self.scanner = OptimizedSystemScanner()
         self.scan_completed = False
         self.program_statuses = {}
         self.driver_statuses = {}
@@ -398,18 +482,18 @@ class InstallationStatusManager:
     def perform_system_scan(self) -> bool:
         """Выполнить полное сканирование системы"""
         try:
-            print("Сканирование установленных программ...")
+            log_info("Сканирование установленных программ...")
             self.scanner.scan_installed_programs()
             
-            print("Сканирование установленных драйверов...")
+            log_info("Сканирование установленных драйверов...")
             self.scanner.scan_installed_drivers()
             
             self.scan_completed = True
-            print(f"Сканирование завершено: найдено {len(self.scanner.installed_programs)} программ и {len(self.scanner.installed_drivers)} драйверов")
+            log_info(f"Сканирование завершено: найдено {len(self.scanner.installed_programs)} программ и {len(self.scanner.installed_drivers)} драйверов")
             return True
             
         except Exception as e:
-            print(f"Ошибка сканирования: {e}")
+            log_error(f"Ошибка сканирования: {e}")
             return False
     
     def check_programs_status(self, programs_data: List[Dict]) -> Dict[str, Dict]:
@@ -490,7 +574,7 @@ class BackgroundScanner(QThread):
                 self.scan_completed.emit({}, {}, {"programs_found": 0, "drivers_found": 0})
                 
         except Exception as e:
-            print(f"Ошибка фонового сканирования: {e}")
+            log_error(f"Ошибка фонового сканирования: {e}")
             self.scan_completed.emit({}, {}, {"programs_found": 0, "drivers_found": 0})
 
 

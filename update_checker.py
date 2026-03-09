@@ -13,7 +13,7 @@ from PyQt6.QtGui import QPixmap, QIcon, QTextBlockFormat
 class UpdateChecker:
     """Класс для проверки обновлений с GitHub"""
     def __init__(self):
-        self.current_version = "1.0"  
+        self.current_version = "1.0.1"  
         self.github_repo = "al1ster13/UTILHELP"  
         self.github_api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
         
@@ -32,8 +32,8 @@ class UpdateChecker:
     def check_for_updates(self):
         """Проверить наличие обновлений на GitHub"""
         try:
-            from temp_manager import debug_log
-            debug_log("Checking for updates on GitHub...")
+            from logger import log_info, log_error
+            log_info("Checking for updates on GitHub...")
             
             response = requests.get(self.github_api_url, timeout=10)
             response.raise_for_status()
@@ -46,7 +46,7 @@ class UpdateChecker:
                 latest_version = latest_version[1:]   
             
             if not latest_version or not latest_version.replace('.', '').isdigit():
-                debug_log(f"Invalid version format: {latest_version}")
+                log_error(f"Invalid version format: {latest_version}")
                 return {
                     'error': f'Неправильный формат версии: {latest_version}',
                     'update_available': False
@@ -67,12 +67,12 @@ class UpdateChecker:
             
             current_ver = self.get_current_version()
             
-            debug_log(f"Current version: {current_ver}")
-            debug_log(f"Latest version: {latest_version}")
+            log_info(f"Current version: {current_ver}")
+            log_info(f"Latest version: {latest_version}")
             
             try:
                 if version.parse(latest_version) > version.parse(current_ver):
-                    debug_log("New version available!")
+                    log_info("New version available!")
                     return {
                         'update_available': True,
                         'latest_version': latest_version,
@@ -84,29 +84,29 @@ class UpdateChecker:
                         'installer_name': installer_name
                     }
                 else:
-                    debug_log("No updates available")
+                    log_info("No updates available")
                     return {
                         'update_available': False,
                         'latest_version': latest_version,
                         'current_version': current_ver
                     }
             except Exception as version_error:
-                debug_log(f"Version comparison error: {version_error}")
+                log_error(f"Version comparison error: {version_error}")
                 return {
                     'error': f'Ошибка сравнения версий: {str(version_error)}',
                     'update_available': False
                 }
                 
         except requests.exceptions.RequestException as e:
-            from temp_manager import debug_log
-            debug_log(f"Network error checking for updates: {e}")
+            from logger import log_error
+            log_error(f"Network error checking for updates: {e}")
             return {
                 'error': f'Ошибка сети: {str(e)}',
                 'update_available': False
             }
         except Exception as e:
-            from temp_manager import debug_log
-            debug_log(f"Error checking for updates: {e}")
+            from logger import log_error
+            log_error(f"Error checking for updates: {e}")
             return {
                 'error': f'Ошибка проверки обновлений: {str(e)}',
                 'update_available': False
@@ -129,8 +129,8 @@ class UpdateDownloader(QThread):
     def run(self):
         """Скачивание установщика"""
         try:
-            from temp_manager import debug_log
-            debug_log(f"Starting download: {self.installer_url}")
+            from logger import log_info, log_error
+            log_info(f"Starting download: {self.installer_url}")
             
             temp_dir = tempfile.gettempdir()
             installer_path = os.path.join(temp_dir, self.installer_name)
@@ -157,12 +157,12 @@ class UpdateDownloader(QThread):
                             progress = int((downloaded_size / total_size) * 100)
                             self.progress_updated.emit(progress)
             
-            debug_log(f"Download completed: {installer_path}")
+            log_info(f"Download completed: {installer_path}")
             self.download_finished.emit(installer_path)
             
         except Exception as e:
-            from temp_manager import debug_log
-            debug_log(f"Download failed: {e}")
+            from logger import log_error
+            log_error(f"Download failed: {e}")
             self.download_failed.emit(str(e))
     
     def cancel(self):
@@ -189,9 +189,13 @@ class UpdateManager:
             from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
             from PyQt6.QtCore import Qt
             from PyQt6.QtGui import QPixmap
+            from localization import get_localization
+            
+            # Определяем язык
+            lang = get_localization().get_language()
             
             check_dialog = QDialog(self.parent_window)
-            check_dialog.setWindowTitle("Проверка обновлений")
+            check_dialog.setWindowTitle("Проверка обновлений" if lang == "ru" else "Checking for Updates")
             check_dialog.setFixedSize(400, 180)
             check_dialog.setWindowModality(Qt.WindowModality.WindowModal)
             
@@ -238,7 +242,8 @@ class UpdateManager:
             icon_label.setFixedSize(40, 40)
             header_layout.addWidget(icon_label)
             
-            title_label = QLabel("UTILHELP - Обновления")
+            title_text = "UTILHELP - Обновления" if lang == "ru" else "UTILHELP - Updates"
+            title_label = QLabel(title_text)
             title_label.setStyleSheet("""
                 QLabel {
                     color: #ffffff;
@@ -287,7 +292,8 @@ class UpdateManager:
             
             layout.addLayout(header_layout)
             
-            check_label = QLabel("Проверка обновлений...")
+            check_text = "Проверка обновлений..." if lang == "ru" else "Checking for updates..."
+            check_label = QLabel(check_text)
             check_label.setStyleSheet("""
                 QLabel {
                     color: #ffffff;
@@ -302,7 +308,8 @@ class UpdateManager:
             
             layout.addStretch()
             
-            cancel_btn = QPushButton("Отмена")
+            cancel_text = "Отмена" if lang == "ru" else "Cancel"
+            cancel_btn = QPushButton(cancel_text)
             cancel_btn.setFixedHeight(35)
             cancel_btn.setStyleSheet("""
                 QPushButton {
@@ -332,20 +339,74 @@ class UpdateManager:
             
             update_info = self.checker.check_for_updates()
             
-            check_dialog.close()
+            # Не закрываем диалог сразу, обновляем его содержимое
             
             if 'error' in update_info:
-                QMessageBox.warning(
-                    self.parent_window,
-                    "Ошибка проверки обновлений",
-                    f"Не удалось проверить обновления:\n{update_info['error']}"
-                )
+                error_title = "Ошибка проверки обновлений" if lang == "ru" else "Update Check Error"
+                error_message = f"Не удалось проверить обновления:\n{update_info['error']}" if lang == "ru" else f"Failed to check for updates:\n{update_info['error']}"
+                
+                check_label.setText(error_message)
+                check_label.setStyleSheet("""
+                    QLabel {
+                        color: #e74c3c;
+                        font-size: 14px;
+                        font-family: 'Segoe UI', Arial, sans-serif;
+                        background: transparent;
+                        border: none;
+                    }
+                """)
+                
+                # Меняем кнопку на "Закрыть"
+                cancel_btn.setText("Закрыть" if lang == "ru" else "Close")
+                cancel_btn.clicked.disconnect()
+                cancel_btn.clicked.connect(check_dialog.accept)
+                
+                check_dialog.exec()
                 return False
             
             if update_info['update_available']:
+                check_dialog.close()
                 self.show_update_dialog(update_info)
                 return True
             else:
+                # Показываем сообщение что установлена последняя версия в том же окне
+                from localization import t
+                
+                current_version = update_info.get('current_version', 'Unknown')
+                
+                success_text = t("settings.no_updates_message", version=current_version)
+                check_label.setText(success_text)
+                check_label.setStyleSheet("""
+                    QLabel {
+                        color: #27ae60;
+                        font-size: 14px;
+                        font-family: 'Segoe UI', Arial, sans-serif;
+                        background: transparent;
+                        border: none;
+                    }
+                """)
+                
+                # Меняем кнопку на "Закрыть"
+                cancel_btn.setText("Закрыть" if lang == "ru" else "Close")
+                cancel_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: rgba(39, 174, 96, 0.2);
+                        color: #27ae60;
+                        border: 1px solid #27ae60;
+                        border-radius: 6px;
+                        font-size: 13px;
+                        font-family: 'Segoe UI', Arial, sans-serif;
+                        padding: 0 20px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: rgba(39, 174, 96, 0.3);
+                    }
+                """)
+                cancel_btn.clicked.disconnect()
+                cancel_btn.clicked.connect(check_dialog.accept)
+                
+                check_dialog.exec()
                 return False
                 
         except Exception as e:
@@ -1203,8 +1264,8 @@ class UpdateManager:
     
     def run_installer(self, installer_path):
         try:
-            from temp_manager import debug_log
-            debug_log(f"Running installer: {installer_path}")
+            from logger import log_info
+            log_info(f"Running installer: {installer_path}")
             
             subprocess.Popen([installer_path], shell=True)
             

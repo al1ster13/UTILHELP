@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QProgressBar
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QPixmap, QIcon
 from resource_path import get_icon_path
+from localization import t
 
 
 class SplashScreen(QWidget):
@@ -9,7 +10,7 @@ class SplashScreen(QWidget):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("UTILHELP - Загрузка...")
+        self.setWindowTitle(t("splash.title"))
         self.setFixedSize(400, 300)  
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -63,7 +64,7 @@ class SplashScreen(QWidget):
         self.scrolling_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.scroll_messages = [
-            "Добро пожаловать в UTILHELP"
+            t("splash.welcome")
         ]
         self.current_message_index = 0
         self.scroll_position = 0
@@ -73,7 +74,7 @@ class SplashScreen(QWidget):
         self.scroll_timer.timeout.connect(self.update_scrolling_text)
         self.scroll_timer.start(50)  
         
-        self.status_label = QLabel("Инициализация системы...")
+        self.status_label = QLabel(t("splash.status_init"))
         self.status_label.setStyleSheet("""
             QLabel {
                 color: #cccccc;
@@ -150,14 +151,14 @@ class SplashScreen(QWidget):
         self.status_timer.timeout.connect(self.update_status)
         
         self.status_messages = [
-            "Инициализация системы...",
-            "Загрузка компонентов интерфейса...",
-            "Подключение к базам данных...",
-            "Проверка конфигурации...",
-            "Подготовка рабочего пространства...",
-            "Загрузка ресурсов...",
-            "Финализация запуска...",
-            "Готово!"
+            t("splash.status_init"),
+            t("splash.status_loading_ui"),
+            t("splash.status_connecting_db"),
+            t("splash.status_checking_config"),
+            t("splash.status_preparing"),
+            t("splash.status_loading_resources"),
+            t("splash.status_finalizing"),
+            t("splash.status_ready")
         ]
         self.current_status = 0
 

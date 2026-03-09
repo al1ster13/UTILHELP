@@ -6,12 +6,14 @@ from urllib.parse import urlparse
 import shutil
 import time
 import traceback
+import ssl
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
                              QProgressBar, QMessageBox, QWidget, QApplication, QScrollArea, QTextEdit)
 from PyQt6.QtCore import QThread, pyqtSignal, QTimer, Qt
 from PyQt6.QtGui import QPixmap, QPainter, QBrush, QColor
 from temp_manager import get_temp_manager
 from notification_manager import get_notification_manager
+from logger import log_info, log_error, log_warning, log_debug
 
 
 class CustomProgressBar(QWidget):
@@ -244,15 +246,15 @@ class DownloadThread(QThread):
         try:
             os.makedirs(self.temp_dir, exist_ok=True)
         except Exception as e:
-            print(f"Ошибка создания временной папки: {e}")
+            log_error(f"Ошибка создания временной папки: {e}")
         
         safe_filename = "".join(c for c in filename if c.isalnum() or c in "._-()[]{}") or "download.tmp"
         self.file_path = os.path.join(self.temp_dir, safe_filename)
         
         try:
-            from temp_manager import debug_log
-            debug_log(f"DownloadThread: temp_dir = {self.temp_dir}")
-            debug_log(f"DownloadThread: file_path = {self.file_path}")
+            from logger import log_info
+            log_info(f"DownloadThread: temp_dir = {self.temp_dir}")
+            log_info(f"DownloadThread: file_path = {self.file_path}")
         except:
             pass
     
@@ -267,6 +269,20 @@ class DownloadThread(QThread):
         
         try:
             import ssl
+            
+            # Валидация URL
+            if not self.url or not isinstance(self.url, str):
+                self.download_error.emit("Ошибка: некорректный URL")
+                return
+                
+            parsed_url = urlparse(self.url)
+            if parsed_url.scheme not in ['http', 'https']:
+                self.download_error.emit(f"Ошибка: неподдерживаемый протокол {parsed_url.scheme}")
+                return
+                
+            # Рекомендуем использовать HTTPS для безопасности
+            if parsed_url.scheme == 'http':
+                log_warning(f"Загрузка по небезопасному HTTP протоколу: {self.url}")
             
             if not self.file_path:
                 self.download_error.emit("Ошибка: не удалось создать путь для файла")
@@ -320,16 +336,21 @@ class DownloadThread(QThread):
                         
                         self.progress_updated.emit(percent, speed, size)
             
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            
-            https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-            opener = urllib.request.build_opener(https_handler)
-            
-            opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')]
-            
-            urllib.request.install_opener(opener)
+            try:
+                ssl_context = ssl.create_default_context()
+                # ssl_context.check_hostname = True  # По умолчанию True
+                # ssl_context.verify_mode = ssl.CERT_REQUIRED  # По умолчанию
+                
+                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+                opener = urllib.request.build_opener(https_handler)
+                
+                opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')]
+                
+                urllib.request.install_opener(opener)
+                
+            except Exception as ssl_error:
+                self.download_error.emit(f"Ошибка настройки SSL: {str(ssl_error)}")
+                return
             
             try:
                 urllib.request.urlretrieve(self.url, self.file_path, progress_hook)
@@ -577,7 +598,7 @@ class DownloadDialog(QDialog):
             else:
                 final_path = file_path
         except Exception as e:
-            print(f"Ошибка перемещения файла: {e}")
+            log_error(f"Ошибка перемещения файла: {e}")
             traceback.print_exc()
             final_path = file_path
         
@@ -660,19 +681,13 @@ class DownloadDialog(QDialog):
             log_text += f"Ошибка:\n{error}\n"
             log_text += "=" * 60 + "\n"
             
-            try:
-                temp_manager = get_temp_manager()
-                log_file = os.path.join(temp_manager.get_temp_dir(), "utilhelp_errors.log")
-                with open(log_file, 'a', encoding='utf-8') as f:
-                    f.write(log_text)
-                print(f"Ошибка записана в: {log_file}")
-            except:
-                log_file = "utilhelp_errors.log"
-                with open(log_file, 'a', encoding='utf-8') as f:
-                    f.write(log_text)
-                print(f"Ошибка записана в: {os.path.abspath(log_file)}")
+            # Используем новую систему логирования вместо записи в файл
+            log_error(f"Ошибка скачивания: {error}")
+            log_error(f"URL: {self.url}")
+            log_error(f"Файл: {self.file_path}")
+            log_error(f"Детали: {log_text}")
         except Exception as log_error:
-            print(f"Не удалось записать лог: {log_error}")
+            log_error(f"Не удалось записать лог: {log_error}")
         
         notification_manager = get_notification_manager()
         notification_manager.show_download_notification(self.program_name, success=False, item_type="program")
@@ -737,7 +752,7 @@ class DownloadDialogWithMetadata(DownloadDialog):
             else:
                 final_path = file_path
         except Exception as e:
-            print(f"Ошибка перемещения файла: {e}")
+            log_error(f"Ошибка перемещения файла: {e}")
             traceback.print_exc()
             final_path = file_path
         

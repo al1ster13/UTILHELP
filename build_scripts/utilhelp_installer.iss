@@ -1,8 +1,8 @@
 [Setup]
 AppId={{F7E8D9C6-B5A4-3210-9876-543210FEDCBA}
 AppName=UTILHELP
-AppVersion=1.0
-AppVerName=UTILHELP 1.0
+AppVersion=1.1
+AppVerName=UTILHELP 1.1
 AppPublisher=al1ster13
 AppPublisherURL=https://github.com/al1ster13/UTILHELP
 AppSupportURL=https://github.com/al1ster13/UTILHELP/issues
@@ -13,7 +13,7 @@ AllowNoIcons=yes
 LicenseFile=..\LICENSE
 InfoBeforeFile=..\docs\INSTALL_INFO.md
 OutputDir=..\installer_output
-OutputBaseFilename=UTILHELP_Setup_v1.0
+OutputBaseFilename=UTILHELP_Setup_v1.1
 SetupIconFile=..\Icons\utilhelp.ico
 Compression=lzma
 SolidCompression=yes
@@ -30,21 +30,21 @@ UsePreviousSetupType=yes
 UsePreviousLanguage=yes
 WizardImageFile=..\Icons\installer2.png
 WizardSmallImageFile=..\Icons\utilhelplogo24.png
-ShowLanguageDialog=no
+ShowLanguageDialog=yes
 LanguageDetectionMethod=uilanguage
 DisableProgramGroupPage=yes
 DisableReadyPage=no
 DisableFinishedPage=no
 DisableWelcomePage=no
 CreateAppDir=yes
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.1.0.0
 VersionInfoCompany=al1ster13
 VersionInfoDescription=UTILHELP Setup - Universal Windows Helper
-VersionInfoTextVersion=1.0
+VersionInfoTextVersion=1.1
 VersionInfoCopyright=Copyright (C) 2026 al1ster13
 VersionInfoProductName=UTILHELP
-VersionInfoProductVersion=1.0.0.0
-VersionInfoProductTextVersion=1.0
+VersionInfoProductVersion=1.1.0.0
+VersionInfoProductTextVersion=1.1
 
 [Languages]
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
@@ -55,11 +55,21 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startmenu"; Description: "Создать ярлык в меню Пуск"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
 
 [Files]
+; Основной исполняемый файл
 Source: "..\dist\UTILHELP\UTILHELP.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\UTILHELP\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "LICENSE,PORTABLE_MODE.txt"
+
+; Все файлы из dist (библиотеки, зависимости)
+Source: "..\dist\UTILHELP\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "LICENSE,PORTABLE_MODE.txt,Icons,notification"
+
+; Иконка приложения (для ярлыков и окна)
 Source: "..\Icons\utilhelp.ico"; DestDir: "{app}"; Flags: ignoreversion
+
+; Версия и лицензия
 Source: "..\version.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}\docs"; Flags: ignoreversion
+
+; ВАЖНО: Icons и notification НЕ включаем - они встроены в resources_rc.py!
+; Ресурсы будут автоматически извлечены в assets/ при первом запуске программы
 
 [Icons]
 Name: "{group}\UTILHELP"; Filename: "{app}\UTILHELP.exe"; IconFilename: "{app}\utilhelp.ico"; Comment: "Универсальный помощник для Windows"; Tasks: startmenu
@@ -77,14 +87,40 @@ Root: HKCR; Subkey: "UTILHELPFile\shell\open\command"; ValueType: string; ValueN
 Filename: "{app}\UTILHELP.exe"; Description: "{cm:LaunchProgram,UTILHELP}"; Flags: nowait postinstall skipifsilent runascurrentuser
 
 [UninstallDelete]
+; Временные файлы в Temp
+Type: filesandordirs; Name: "{tmp}\UTILHELPTEMP"
+Type: filesandordirs; Name: "{tmp}\UTILHELP"
+Type: filesandordirs; Name: "{tmp}\UH"
+Type: filesandordirs; Name: "{tmp}\UTILHELP_data"
+Type: filesandordirs; Name: "{tmp}\UTILHELP_cache"
+Type: filesandordirs; Name: "{tmp}\UTILHELP_Backup"
+
+; Временные файлы в LocalAppData\Temp
 Type: filesandordirs; Name: "{localappdata}\Temp\UTILHELPTEMP"
 Type: filesandordirs; Name: "{localappdata}\Temp\UTILHELP"
 Type: filesandordirs; Name: "{localappdata}\Temp\UH"
+Type: filesandordirs; Name: "{localappdata}\Temp\UTILHELP_data"
+Type: filesandordirs; Name: "{localappdata}\Temp\UTILHELP_cache"
+
+; Временные файлы в папке программы
 Type: files; Name: "{app}\*.log"
 Type: files; Name: "{app}\*.tmp"
 Type: files; Name: "{app}\PORTABLE_MODE.txt"
 
+; Извлеченные ресурсы
+Type: filesandordirs; Name: "{app}\assets"
+
+; Старые данные в папке программы (если остались)
+Type: filesandordirs; Name: "{app}\data"
+Type: filesandordirs; Name: "{app}\cache"
+Type: filesandordirs; Name: "{app}\UHDOWNLOAD"
+Type: files; Name: "{app}\settings.db"
+Type: files; Name: "{app}\settings.json"
+
 [Code]
+var
+  SelectedLanguage: String;
+
 function InitializeSetup(): Boolean;
 var
   Version: TWindowsVersion;
@@ -132,7 +168,7 @@ begin
     begin
       if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{F7E8D9C6-B5A4-3210-9876-543210FEDCBA}_is1', 'DisplayVersion', PrevVersion) then
       begin
-        Result := (PrevVersion <> '') and (PrevVersion <> '1.0');
+        Result := (PrevVersion <> '') and (PrevVersion <> '1.1');
       end;
     end;
   end;
@@ -167,17 +203,23 @@ end;
 
 procedure BackupUserDataForUpgrade();
 var
-  AppDir, BackupDir: String;
+  AppDir, BackupDir, AppDataDir: String;
 begin
   if IsUpgrade() then
   begin
     AppDir := ExpandConstant('{app}');
     BackupDir := ExpandConstant('{tmp}\UTILHELP_Backup');
+    AppDataDir := ExpandConstant('{userappdata}\UTILHELP');
     
     CreateDir(BackupDir);
     
-    if DirExists(AppDir + '\UHDOWNLOAD') then
-      CopyDir(AppDir + '\UHDOWNLOAD', BackupDir + '\UHDOWNLOAD');
+    // Резервируем данные из AppData
+    if DirExists(AppDataDir + '\UTILHELPFILES') then
+      CopyDir(AppDataDir + '\UTILHELPFILES', BackupDir + '\UTILHELPFILES');
+    if DirExists(AppDataDir + '\data') then
+      CopyDir(AppDataDir + '\data', BackupDir + '\data');
+    
+    // Резервируем старые данные из папки программы (если есть)
     if DirExists(AppDir + '\cache') then
       CopyDir(AppDir + '\cache', BackupDir + '\cache');
     if DirExists(AppDir + '\data') then
@@ -189,20 +231,25 @@ end;
 
 procedure RestoreUserDataAfterUpgrade();
 var
-  AppDir, BackupDir: String;
+  AppDir, BackupDir, AppDataDir: String;
 begin
   AppDir := ExpandConstant('{app}');
   BackupDir := ExpandConstant('{tmp}\UTILHELP_Backup');
+  AppDataDir := ExpandConstant('{userappdata}\UTILHELP');
+  
   if DirExists(BackupDir) then
   begin
-    if DirExists(BackupDir + '\UHDOWNLOAD') then
-      CopyDir(BackupDir + '\UHDOWNLOAD', AppDir + '\UHDOWNLOAD');
-    if DirExists(BackupDir + '\cache') then
-      CopyDir(BackupDir + '\cache', AppDir + '\cache');
+    // Восстанавливаем в AppData
+    if DirExists(BackupDir + '\UTILHELPFILES') then
+      CopyDir(BackupDir + '\UTILHELPFILES', AppDataDir + '\UTILHELPFILES');
     if DirExists(BackupDir + '\data') then
-      CopyDir(BackupDir + '\data', AppDir + '\data');
+      CopyDir(BackupDir + '\data', AppDataDir + '\data');
+    
+    // Восстанавливаем старые данные из cache
+    if DirExists(BackupDir + '\cache') then
+      CopyDir(BackupDir + '\cache', AppDataDir + '\data');
     if FileExists(BackupDir + '\settings.db') then
-      FileCopy(BackupDir + '\settings.db', AppDir + '\settings.db', False);
+      FileCopy(BackupDir + '\settings.db', AppDataDir + '\data\settings.db', False);
     
     DelTree(BackupDir, True, True, True);
   end;
@@ -234,21 +281,56 @@ begin
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  SettingsFile: String;
+  SettingsContent: String;
+  LangCode: String;
 begin
+  // Резервное копирование при установке
   if CurStep = ssInstall then
   begin
     BackupUserDataForUpgrade();
     BackupUserSettings();
   end;
   
+  // Действия после установки
   if CurStep = ssPostInstall then
   begin
+    // Восстанавливаем данные пользователя
     RestoreUserDataAfterUpgrade();
     RestoreUserSettings();
+    
+    // Удаляем ненужные файлы
     DeleteFile(ExpandConstant('{app}\README.md'));
     DeleteFile(ExpandConstant('{app}\COPYRIGHT.md'));
     DeleteFile(ExpandConstant('{app}\docs\README.md'));
     DeleteFile(ExpandConstant('{app}\docs\COPYRIGHT.md'));
+    
+    // Создаем settings.json с правильным языком
+    if ActiveLanguage = 'russian' then
+      LangCode := 'ru'
+    else
+      LangCode := 'en';
+    
+    SettingsFile := ExpandConstant('{app}\settings.json');
+    
+    SettingsContent := '{' + #13#10 +
+      '  "version": "1.1.0",' + #13#10 +
+      '  "auto_scan_enabled": true,' + #13#10 +
+      '  "scan_interval_minutes": 30,' + #13#10 +
+      '  "cache_expiry_hours": 24,' + #13#10 +
+      '  "last_scan_timestamp": null,' + #13#10 +
+      '  "scan_on_startup": true,' + #13#10 +
+      '  "notifications_enabled": true,' + #13#10 +
+      '  "notification_style": "custom",' + #13#10 +
+      '  "notification_sounds": true,' + #13#10 +
+      '  "theme": "dark",' + #13#10 +
+      '  "language": "' + LangCode + '"' + #13#10 +
+      '}';
+    
+    SaveStringToFile(SettingsFile, SettingsContent, False);
+    
+    // Сообщение об успешном обновлении
     if IsUpgrade() then
     begin
       MsgBox('UTILHELP успешно обновлен!' + #13#10 + 
@@ -334,28 +416,48 @@ end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Response: Integer;
-  AppDir: String;
+  AppDir, AppDataDir, TempDir: String;
 begin
   if CurUninstallStep = usPostUninstall then
   begin
     AppDir := ExpandConstant('{app}');
-    Response := MsgBox('Удалить пользовательские данные?' + #13#10 + 
-                       '• Скачанные файлы (UHDOWNLOAD)' + #13#10 +
-                       '• Кэш и настройки' + #13#10#13#10 +
+    AppDataDir := ExpandConstant('{userappdata}\UTILHELP');
+    TempDir := ExpandConstant('{tmp}');
+    
+    Response := MsgBox('Удалить все данные программы?' + #13#10#13#10 + 
+                       'Будут удалены:' + #13#10 +
+                       '• Папка программы: ' + AppDir + #13#10 +
+                       '• Данные в AppData: ' + AppDataDir + #13#10 +
+                       '  - Настройки и кэш' + #13#10 +
+                       '  - Скачанные файлы (UTILHELPFILES)' + #13#10 +
+                       '• Временные файлы' + #13#10#13#10 +
                        'Эти данные можно будет использовать при переустановке.',
                        mbConfirmation, MB_YESNO);
     
     if Response = IDYES then
     begin
-      DelTree(AppDir + '\UHDOWNLOAD', True, True, True);
-      DelTree(AppDir + '\cache', True, True, True);
-      DelTree(AppDir + '\data', True, True, True);
-      DeleteFile(AppDir + '\settings.db');
-      MsgBox('Пользовательские данные удалены.', mbInformation, MB_OK);
+      // Удаляем папку программы полностью
+      DelTree(AppDir, True, True, True);
+      
+      // Удаляем данные из AppData
+      DelTree(AppDataDir, True, True, True);
+      
+      // Удаляем временные файлы
+      DelTree(TempDir + '\UTILHELPTEMP', True, True, True);
+      DelTree(TempDir + '\UTILHELP', True, True, True);
+      DelTree(TempDir + '\UH', True, True, True);
+      DelTree(TempDir + '\UTILHELP_data', True, True, True);
+      DelTree(TempDir + '\UTILHELP_cache', True, True, True);
+      
+      MsgBox('Все данные программы удалены.', mbInformation, MB_OK);
     end
     else
     begin
-      MsgBox('Пользовательские данные сохранены в папке:' + #13#10 + AppDir, mbInformation, MB_OK);
+      MsgBox('Данные программы сохранены:' + #13#10#13#10 +
+             '• Папка программы: ' + AppDir + #13#10 +
+             '• Данные: ' + AppDataDir + #13#10#13#10 +
+             'Вы можете удалить их вручную позже.',
+             mbInformation, MB_OK);
     end;
   end;
 end;

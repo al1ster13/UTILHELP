@@ -1,266 +1,143 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QPushButton, QHBoxLayout, QFrame, QGridLayout, QLineEdit, QDialog, QGraphicsOpacityEffect, QComboBox, QListWidget, QListWidgetItem
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QPushButton, QHBoxLayout, QFrame, QGridLayout, QLineEdit, QDialog, QGraphicsOpacityEffect
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal, QThread
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QCursor
 from scroll_helper import configure_scroll_area
 from download_manager import InstallationManager, CustomMessageBox
-from resource_path import get_db_path
-from scroll_helper import configure_scroll_area
+from resource_path import get_db_path, get_icon_path
 from favorites_manager import FavoritesManager
 from system_scanner import CachedInstallationStatusManager, BackgroundScanner
+from logger import log_info, log_error, log_warning, log_debug
+from localization import t
+from ui.components import CatalogComboBox, BaseInfoPanel
+from typing import Dict, Any, Optional
+import webbrowser
 
 
-class CustomComboBox(QWidget):
-    """Кастомный выпадающий список без системных ограничений"""
+class ProgramInfoPanel(BaseInfoPanel):
+    """Информационная панель программы - наследует BaseInfoPanel"""
     
-    currentIndexChanged = pyqtSignal(int)
-    
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None):
+        self.installation_manager = None
         super().__init__(parent)
-        self.items = []
-        self.current_index = 0
-        self.is_open = False
+    
+    def _get_icon_path(self, logo_name: str) -> Optional[str]:
+        """Получить путь к иконке программы"""
+        from resource_path import get_program_image_path
+        return get_program_image_path(logo_name)
+    
+    def _add_custom_info(self, item_data: Dict[str, Any]):
+        """Добавить специфичную информацию для программ"""
+        status = item_data.get("status", "")
+        if status and status != "Доступно":
+            self._add_info_row("📊", f"Статус: {status}")
+    
+    def _create_main_button(self, item_data: Dict[str, Any]) -> Optional[QPushButton]:
+        """Создать основную кнопку действия"""
+        button = QPushButton()
+        button.setFixedHeight(45)
+        button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        button_type = item_data.get("button_type", "download")
+        status = item_data.get("status", "Доступно")
         
-        self.button = QPushButton()
-        self.button.setFixedHeight(35)
-        self.button.setFixedWidth(200)
-        self.button.clicked.connect(self.toggle_dropdown)
-        self.button.setStyleSheet("""
+        if status == "Скоро":
+            button.setText(t("buttons.coming_soon"))
+            button.setEnabled(False)
+        elif button_type == "website":
+            button.setText(t("buttons.website"))
+            button.clicked.connect(lambda: self._handle_website_click(item_data))
+        else:
+            button.setText(t("buttons.download"))
+            button.clicked.connect(lambda: self._handle_download_click(item_data))
+        
+        button.setStyleSheet("""
             QPushButton {
-                background-color: #2d2d2d;
-                border: 1px solid transparent;
-                border-radius: 8px;
-                padding: 8px 15px;
+                background-color: #666666;
                 color: #ffffff;
+                border: none;
+                border-radius: 8px;
                 font-size: 14px;
-                text-align: left;
-                outline: none;
+                font-weight: bold;
+                padding: 12px 20px;
             }
             QPushButton:hover {
-                background-color: #353535;
-                border: 1px solid transparent;
+                background-color: #777777;
             }
-            QPushButton:focus {
-                background-color: #353535;
-                border: 1px solid transparent;
-                outline: none;
+            QPushButton:pressed {
+                background-color: #555555;
+            }
+            QPushButton:disabled {
+                background-color: #7f8c8d;
+                color: #bdc3c7;
             }
         """)
         
-        button_container = QWidget()
-        button_container.setFixedSize(200, 35)
-        button_layout = QHBoxLayout(button_container)
-        button_layout.setContentsMargins(0, 0, 0, 0)
-        button_layout.addWidget(self.button)
-        
-        self.arrow_label = QLabel("▼")
-        self.arrow_label.setFixedSize(20, 35)
-        self.arrow_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.arrow_label.setStyleSheet("""
-            QLabel {
+        return button
+    
+    def _create_website_button(self, item_data: Dict[str, Any]) -> QPushButton:
+        """Создать кнопку сайта разработчика"""
+        button = QPushButton(t("buttons.developer_website"))
+        button.setFixedHeight(40)
+        button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        button.clicked.connect(lambda: self._open_website(item_data.get("website", "")))
+        button.setStyleSheet("""
+            QPushButton {
+                background-color: #4a4a4a;
                 color: #ffffff;
-                font-size: 10px;
-                background: transparent;
                 border: none;
+                border-radius: 6px;
+                font-size: 12px;
+                padding: 8px 16px;
+            }
+            QPushButton:hover {
+                background-color: #5a5a5a;
+            }
+            QPushButton:pressed {
+                background-color: #3a3a3a;
             }
         """)
-        self.arrow_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        self.arrow_label.setParent(button_container)
-        self.arrow_label.move(175, 0)
-        
-        self.layout.addWidget(button_container)
-        
-        self.dropdown = QListWidget()
-        self.dropdown.setFixedWidth(192)  
-        self.dropdown.setMaximumHeight(300)  
-        self.dropdown.hide()
-        self.dropdown.itemClicked.connect(self.item_selected)
-        
-        self.dropdown.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.dropdown.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        
-        configure_scroll_area(self.dropdown)
-        
-        self.dropdown.setStyleSheet("""
-            QListWidget {
-                background-color: #2d2d2d;
-                border: none;
-                color: #ffffff;
-                outline: none;
-                font-size: 14px;
-                padding: 4px;
-            }
-            QListWidget::item {
-                padding: 8px 11px;
-                border: none;
-                margin: 1px;
-                border-radius: 4px;
-                min-height: 20px;
-            }
-            QListWidget::item:hover {
-                background-color: #404040;
-            }
-            QListWidget::item:selected {
-                background-color: #404040;
-            }
-        """)
-        
-        self.opacity_effect = QGraphicsOpacityEffect()
-        self.dropdown.setGraphicsEffect(self.opacity_effect)
-        
-        self.fade_animation = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.fade_animation.setDuration(150)
-        self.fade_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        return button
     
-    def keyPressEvent(self, event):
-        """Обработка нажатий клавиш"""
-        if event.key() == Qt.Key.Key_Escape and self.is_open:
-            self.hide_dropdown()
+    def _handle_download_click(self, item_data: Dict[str, Any]):
+        """Обработка клика на кнопку скачивания"""
+        download_url = item_data.get("url", "")
+        if download_url:
+            icon_path = self._get_icon_path(item_data.get("logo", ""))
+            InstallationManager.install_program(
+                item_data["name"],
+                download_url,
+                self,
+                icon_path,
+                "program"
+            )
         else:
-            super().keyPressEvent(event)
+            CustomMessageBox.warning(self, t("errors.no_url"), t("errors.no_url"))
     
-    def eventFilter(self, obj, event):
-        """Фильтр событий для закрытия списка при клике вне его"""
-        if event.type() == event.Type.MouseButtonPress and self.is_open:
-            if (obj != self.dropdown and obj != self.button and 
-                not self.dropdown.isAncestorOf(obj) and 
-                not self.button.isAncestorOf(obj) and
-                obj != self.arrow_label):  
-                self.hide_dropdown()
-        return super().eventFilter(obj, event)
+    def _handle_website_click(self, item_data: Dict[str, Any]):
+        """Обработка клика на кнопку сайта"""
+        url = item_data.get("url", "")
+        self._open_website(url)
     
-    def addItem(self, text, data=None):
-        """Добавить элемент в список"""
-        self.items.append({"text": text, "data": data})
-        
-        item = QListWidgetItem(text)
-        if data is not None:
-            item.setData(Qt.ItemDataRole.UserRole, data)
-        self.dropdown.addItem(item)
-        
-        if len(self.items) == 1:
-            self.button.setText(text)
-    
-    def currentData(self):
-        """Получить данные текущего элемента"""
-        if 0 <= self.current_index < len(self.items):
-            return self.items[self.current_index]["data"]
-        return None
-    
-    def setCurrentIndex(self, index):
-        """Установить текущий индекс"""
-        if 0 <= index < len(self.items):
-            self.current_index = index
-            self.button.setText(self.items[index]["text"])
-            self.dropdown.setCurrentRow(index)
-    
-    def toggle_dropdown(self):
-        """Переключить видимость выпадающего списка"""
-        if self.is_open:
-            self.hide_dropdown()
+    def _open_website(self, url: str):
+        """Открыть сайт в браузере"""
+        if url and url.strip():
+            try:
+                webbrowser.open(url)
+            except Exception as e:
+                CustomMessageBox.critical(
+                    self,
+                    t("errors.open_website_failed"),
+                    t("errors.open_website_failed", error=str(e))
+                )
         else:
-            self.show_dropdown()
+            CustomMessageBox.warning(self, t("errors.no_website"), t("errors.no_website"))
     
-    def show_dropdown(self):
-        """Показать выпадающий список"""
-        if self.is_open:
-            return
-        
-        self.is_open = True
-        self.arrow_label.setText("▲")
-        
-        try:
-            self.fade_animation.finished.disconnect()
-        except:
-            pass
-        
-        if self.parent():
-            self.dropdown.setParent(self.parent())
-        
-        button_global_pos = self.button.mapToGlobal(self.button.rect().bottomLeft())
-        parent_global_pos = self.parent().mapToGlobal(self.parent().rect().topLeft())
-        
-        relative_x = button_global_pos.x() - parent_global_pos.x() + 4
-        relative_y = button_global_pos.y() - parent_global_pos.y() + 5
-        
-        self.dropdown.move(relative_x, relative_y)
-        self.dropdown.show()
-        self.dropdown.raise_()  
-        
-        if self.parent():
-            main_window = self.parent()
-            while main_window.parent():
-                main_window = main_window.parent()
-            main_window.installEventFilter(self)
-            
-            for child in main_window.findChildren(QWidget):
-                child.installEventFilter(self)
-        
-        self.setFocus()
-        
-        self.fade_animation.setStartValue(0.0)
-        self.fade_animation.setEndValue(1.0)
-        self.fade_animation.start()
-    
-    def hide_dropdown(self):
-        """Скрыть выпадающий список"""
-        if not self.is_open:
-            return
-        
-        self.is_open = False
-        self.arrow_label.setText("▼")
-        
-        if self.parent():
-            main_window = self.parent()
-            while main_window.parent():
-                main_window = main_window.parent()
-            main_window.removeEventFilter(self)
-            
-            for child in main_window.findChildren(QWidget):
-                child.removeEventFilter(self)
-        
-        try:
-            self.fade_animation.finished.disconnect()
-        except:
-            pass
-        
-        self.fade_animation.setStartValue(1.0)
-        self.fade_animation.setEndValue(0.0)
-        self.fade_animation.finished.connect(self._on_hide_finished)
-        self.fade_animation.start()
-    
-    def _on_hide_finished(self):
-        """Завершение анимации скрытия"""
-        self.dropdown.hide()
-        try:
-            self.fade_animation.finished.disconnect()
-        except:
-            pass
-    
-    def item_selected(self, item):
-        """Обработка выбора элемента"""
-        row = self.dropdown.row(item)
-        if row != self.current_index:
-            self.current_index = row
-            self.button.setText(item.text())
-            self.currentIndexChanged.emit(row)
-        
-        self.hide_dropdown()
-    
-    def clear(self):
-        """Очистить список"""
-        self.items.clear()
-        self.dropdown.clear()
-        self.current_index = 0
-        self.button.setText("")
+    def show_program(self, program: Dict[str, Any]):
+        """Показать информацию о программе (обратная совместимость)"""
+        self.show_item(program)
 
 
-class ProgramInfoPanel(QWidget):
+class ProgramsTab(QWidget):
     """Панель с подробной информацией о программе"""
 
     def __init__(self, parent=None):
@@ -483,7 +360,7 @@ class ProgramInfoPanel(QWidget):
         """)
         buttons_layout.addWidget(self.download_btn)
         
-        self.website_btn = QPushButton("Перейти на сайт разработчика")
+        self.website_btn = QPushButton(t("buttons.developer_website"))
         self.website_btn.clicked.connect(self.open_developer_website)
         self.website_btn.setStyleSheet("""
             QPushButton {
@@ -552,20 +429,20 @@ class ProgramInfoPanel(QWidget):
         else:
             self.logo_label.setText("📦")  
         
-        self.category_label.setText(f"Категория: {program['category']}")
+        self.category_label.setText(t("info.category", category=program['category']))
         self.desc_label.setText(program["description"])
         
         if program["status"] == "Скоро":
             if program["button_type"] == "website":
-                self.download_btn.setText("Скоро будет доступно")
+                self.download_btn.setText(t("buttons.coming_soon"))
             else:
-                self.download_btn.setText("Скоро будет доступно")
+                self.download_btn.setText(t("buttons.coming_soon"))
             self.download_btn.setEnabled(False)
         else:
             if program["button_type"] == "website":
-                self.download_btn.setText("Перейти на сайт")
+                self.download_btn.setText(t("buttons.website"))
             else:
-                self.download_btn.setText("Скачать и установить")
+                self.download_btn.setText(t("buttons.download"))
             self.download_btn.setEnabled(True)
         
         if program.get("website") and program["website"].strip():
@@ -686,6 +563,9 @@ class ProgramsTab(QWidget):
         self.background_scanner = None
         self.scan_in_progress = False
         
+        from settings_manager import settings_manager
+        self.view_mode = settings_manager.get_setting("view_mode_programs", "grid")
+        
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(20, 20, 20, 20)
         
@@ -722,9 +602,9 @@ class ProgramsTab(QWidget):
             }
         """)
         
-        title_label = QLabel("ПРОГРАММЫ")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("""
+        self.title_label = QLabel(t("tabs.programs"))
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet("""
             QLabel {
                 color: #ffffff;
                 font-size: 28px;
@@ -733,21 +613,21 @@ class ProgramsTab(QWidget):
                 letter-spacing: 2px;
             }
         """)
-        self.layout.addWidget(title_label)
+        self.layout.addWidget(self.title_label)
         
         search_layout = QHBoxLayout()
         search_layout.setContentsMargins(100, 0, 100, 15)
         search_layout.setSpacing(15)
         
-        self.category_filter = CustomComboBox()
-        self.category_filter.addItem("Все категории", "")
-        self.category_filter.addItem("Избранное", "favorites")
+        self.category_filter = CatalogComboBox()
+        self.category_filter.addItem(t("categories.all"), "")
+        self.category_filter.addItem(t("categories.favorites"), "favorites")
         self.category_filter.currentIndexChanged.connect(self.filter_programs)
         
         search_layout.addWidget(self.category_filter)
         
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Поиск программ...")
+        self.search_input.setPlaceholderText(t("search.programs_placeholder"))
         self.search_input.textChanged.connect(self.filter_programs)
         self.search_input.setFixedHeight(35)
         self.search_input.setStyleSheet("""
@@ -779,12 +659,12 @@ class ProgramsTab(QWidget):
             
         self.scan_button.setFixedSize(35, 35)
         self.scan_button.clicked.connect(self.start_system_scan)
-        self.scan_button.setToolTip("Сканировать систему на наличие установленных программ\nи отметить их зелеными галочками")
+        self.scan_button.setToolTip(t("search.scan_tooltip"))
         self.scan_button.setStyleSheet("""
             QPushButton {
                 background-color: #666666;
                 border: none;
-                border-radius: 17px;
+                border-radius: 8px;
                 color: #ffffff;
                 font-size: 16px;
                 font-weight: bold;
@@ -812,6 +692,37 @@ class ProgramsTab(QWidget):
         """)
         
         search_layout.addWidget(self.scan_button)
+        
+        self.view_mode_button = QPushButton()
+        self.view_mode_button.setFixedSize(35, 35)
+        self.view_mode_button.clicked.connect(self.toggle_view_mode)
+        self.view_mode_button.setStyleSheet("""
+            QPushButton {
+                background-color: #666666;
+                border: none;
+                border-radius: 8px;
+                color: #ffffff;
+                font-size: 18px;
+                font-weight: bold;
+                outline: none;
+            }
+            QPushButton:hover {
+                background-color: #777777;
+            }
+            QPushButton:pressed {
+                background-color: #555555;
+            }
+            QToolTip {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                border: 1px solid #555555;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 12px;
+            }
+        """)
+        
+        search_layout.addWidget(self.view_mode_button)
         self.layout.addLayout(search_layout)
         
         self.scroll_area = QScrollArea()
@@ -866,11 +777,13 @@ class ProgramsTab(QWidget):
         self.layout.addWidget(self.scroll_area)
         
         self.info_panel = ProgramInfoPanel(self)
+        
+        self.update_view_mode_button()
 
     def set_data(self, programs_data):
         """Установить данные программ из JSON"""
         self.programs_data = programs_data
-        print(f"Programs tab: получено {len(programs_data)} программ")
+        log_info(f"Programs tab: получено {len(programs_data)} программ")
         
         self.all_programs = []
         categories_set = set()
@@ -882,6 +795,7 @@ class ProgramsTab(QWidget):
             program_dict = {
                 "name": program.get('name', ''),
                 "description": program.get('description', ''),
+                "description_en": program.get('description_en', ''),
                 "category": category_str,  
                 "categories": categories_list,  
                 "logo": program.get('logo', ''),
@@ -897,17 +811,30 @@ class ProgramsTab(QWidget):
                 categories_set.add(cat)
         
         self.category_filter.clear()
-        self.category_filter.addItem("Все категории", "")
-        self.category_filter.addItem("Избранное", "favorites")
+        self.category_filter.addItem(t("categories.all"), "")
+        self.category_filter.addItem(t("categories.favorites"), "favorites")
         for category in sorted(categories_set):
-            self.category_filter.addItem(category, category)
+            from localization import translate_category
+            translated_category = translate_category(category)
+            self.category_filter.addItem(translated_category, category)
         
         self.filtered_programs = self.all_programs.copy()
         
         self.display_programs()
 
     def display_programs(self):
+        """Отображение программ в зависимости от выбранного режима"""
+        if self.view_mode == "list":
+            self.display_programs_list()
+        else:
+            self.display_programs_grid()
+    
+    def display_programs_grid(self):
         """Отображение программ в виде сетки"""
+        # Настраиваем отступы для режима плитки
+        self.programs_grid.setVerticalSpacing(50)
+        self.programs_grid.setHorizontalSpacing(120)
+        
         for i in reversed(range(self.programs_grid.count())):
             child = self.programs_grid.itemAt(i).widget()
             if child:
@@ -931,6 +858,24 @@ class ProgramsTab(QWidget):
             if col >= columns:
                 col = 0
                 row += 1
+    
+    def display_programs_list(self):
+        """Отображение программ в виде списка"""
+        # Настраиваем отступы для режима списка
+        self.programs_grid.setVerticalSpacing(15)  # Уменьшенный отступ между карточками
+        self.programs_grid.setHorizontalSpacing(0)
+        
+        # Очищаем текущий layout
+        for i in reversed(range(self.programs_grid.count())):
+            child = self.programs_grid.itemAt(i).widget()
+            if child:
+                child.setParent(None)
+        
+        sorted_programs = sorted(self.filtered_programs, key=lambda x: x.get('name', '').lower())
+        
+        for row, program in enumerate(sorted_programs):
+            card = self.create_program_card_list(program)
+            self.programs_grid.addWidget(card, row, 0)
 
     def create_program_card(self, program):
         """Создание квадратной карточки программы"""
@@ -983,7 +928,6 @@ class ProgramsTab(QWidget):
             status_label.setFixedSize(24, 24)
             status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            # Загружаем иконку installed.png
             from resource_path import get_icon_path
             icon_path = get_icon_path("installed.png")
             if icon_path:
@@ -1015,7 +959,7 @@ class ProgramsTab(QWidget):
                     font-size: 12px;
                 }
             """)
-            status_label.setToolTip(f"Установлено: {status['exact_name']}\nВерсия: {status['version']}")
+            status_label.setToolTip(t("status.installed_tooltip", name=status['exact_name'], version=status['version']))
             top_layout.addWidget(status_label)
         
         top_layout.addStretch()
@@ -1103,6 +1047,173 @@ class ProgramsTab(QWidget):
         card_layout.addWidget(name_label)
         
         return card
+    
+    def create_program_card_list(self, program):
+        """Создание горизонтальной карточки программы для режима списка"""
+        card = QFrame()
+        card.setFixedHeight(80)
+        card.setMinimumWidth(600)
+        
+        def card_mouse_press(event):
+            if event.button() == Qt.MouseButton.LeftButton:
+                child = card.childAt(event.pos())
+                if child and child.objectName() == "favorite_btn":
+                    return
+                self.show_program_info(program)
+        
+        card.mousePressEvent = card_mouse_press
+        
+        colors = {
+            'bg_secondary': '#252525',
+            'bg_button': '#2d2d2d', 
+            'border': '#404040',
+            'text_primary': '#ffffff',
+            'text_secondary': '#999999'
+        }
+        
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {colors['bg_secondary']};
+                border: none;
+                border-radius: 10px;
+                padding: 0px;
+            }}
+            QFrame:hover {{
+                background-color: {colors['bg_button']};
+                border: 2px solid {colors['border']};
+            }}
+        """)
+        
+        card_layout = QHBoxLayout(card)
+        card_layout.setContentsMargins(15, 10, 15, 10)
+        card_layout.setSpacing(15)
+        
+        from image_helper import load_program_image
+        pixmap = load_program_image(program["logo"])
+        if pixmap and not pixmap.isNull():
+            scaled_pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            logo_label = QLabel()
+            logo_label.setPixmap(scaled_pixmap)
+        else:
+            logo_label = QLabel("📦")
+        
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_label.setFixedSize(60, 60)
+        logo_label.setStyleSheet("""
+            QLabel {
+                color: #ffffff;
+                font-size: 32px;
+                font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+                background: transparent;
+                border: none;
+            }
+        """)
+        card_layout.addWidget(logo_label)
+        
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(5)
+        
+        name_label = QLabel(program["name"])
+        name_label.setStyleSheet(f"""
+            QLabel {{
+                color: {colors['text_primary']};
+                font-size: 16px;
+                font-weight: bold;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        info_layout.addWidget(name_label)
+        
+        from settings_manager import settings_manager
+        current_language = settings_manager.get_setting("language", "ru")
+        
+        if current_language == "en" and "description_en" in program:
+            description = program.get("description_en", program.get("description", ""))
+        else:
+            description = program.get("description", "")
+        
+        if len(description) > 100:
+            description = description[:97] + "..."
+        desc_label = QLabel(description)
+        desc_label.setStyleSheet(f"""
+            QLabel {{
+                color: {colors['text_secondary']};
+                font-size: 12px;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        info_layout.addWidget(desc_label)
+        
+        card_layout.addLayout(info_layout, 1)
+        
+        status = self.status_manager.get_program_status(program["name"])
+        if status["installed"]:
+            status_label = QLabel()
+            status_label.setFixedSize(24, 24)
+            status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            from resource_path import get_icon_path
+            icon_path = get_icon_path("installed.png")
+            if icon_path:
+                from PyQt6.QtGui import QPixmap
+                pixmap = QPixmap(icon_path)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                    status_label.setPixmap(scaled_pixmap)
+                else:
+                    status_label.setText("✓")
+            else:
+                status_label.setText("✓")
+            
+            status_label.setStyleSheet("""
+                QLabel {
+                    background-color: transparent;
+                    border: none;
+                }
+                QToolTip {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #555555;
+                    border-radius: 4px;
+                    padding: 8px;
+                    font-size: 12px;
+                }
+            """)
+            status_label.setToolTip(t("status.installed_tooltip", name=status['exact_name'], version=status['version']))
+            card_layout.addWidget(status_label)
+        
+        favorite_btn = QPushButton()
+        favorite_btn.setFixedSize(28, 28)
+        favorite_btn.setObjectName("favorite_btn")
+        is_favorite = self.favorites_manager.is_favorite(program["name"], "programs")
+        favorite_btn.setText("♥" if is_favorite else "♡")
+        favorite_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                color: {'#ff4757' if is_favorite else '#666666'};
+                font-size: 22px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                color: #ff4757;
+            }}
+        """)
+        favorite_btn.clicked.connect(lambda: self.toggle_favorite(program, favorite_btn))
+        
+        def favorite_mouse_press(event):
+            event.accept()
+            self.toggle_favorite(program, favorite_btn)
+        
+        favorite_btn.mousePressEvent = favorite_mouse_press
+        
+        card_layout.addWidget(favorite_btn)
+        
+        return card
 
     def toggle_favorite(self, program, button):
         """Переключить статус избранного для программы"""
@@ -1181,22 +1292,95 @@ class ProgramsTab(QWidget):
         """Сброс поиска и прокрутки при переключении вкладки"""
         if hasattr(self, 'search_input'):
             self.search_input.clear()
-            self.search_input.clearFocus()
+    
+    def toggle_view_mode(self):
+        """Переключение режима просмотра между плиткой и списком"""
+        from settings_manager import settings_manager
         
-        if hasattr(self, 'category_filter') and hasattr(self.category_filter, 'is_open'):
-            if self.category_filter.is_open:
-                self.category_filter.hide_dropdown()
+        # Переключаем режим
+        self.view_mode = "list" if self.view_mode == "grid" else "grid"
         
-        if hasattr(self, 'category_filter'):
-            self.category_filter.setCurrentIndex(0)
-            self.filter_programs()
+        settings_manager.set_setting("view_mode_programs", self.view_mode)
         
-        if hasattr(self, 'scroll_area'):
-            self.scroll_area.verticalScrollBar().setValue(0)
+        self.update_view_mode_button()
         
-        if hasattr(self, 'info_panel') and self.info_panel.isVisible():
-            self.info_panel.hide_panel()
-            self.current_program = None
+        # Перерисовываем программы
+        self.display_programs()
+    
+    def update_view_mode_button(self):
+        """Обновление иконки и подсказки кнопки режима просмотра"""
+        from resource_path import get_icon_path
+        from PyQt6.QtGui import QIcon, QPixmap, QPainter
+        from PyQt6.QtCore import QSize, Qt
+        
+        if self.view_mode == "grid":
+            # Показываем иконку списка (переключить на список)
+            icon_path = get_icon_path("iconlist.png")
+            if icon_path:
+                original_pixmap = QPixmap(icon_path)
+                
+                centered_pixmap = QPixmap(35, 35)
+                centered_pixmap.fill(Qt.GlobalColor.transparent)
+                
+                # Масштабируем иконку до 27x27 (нечетное число для лучшего центрирования)
+                scaled_pixmap = original_pixmap.scaled(
+                    27, 27, 
+                    Qt.AspectRatioMode.KeepAspectRatio, 
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                
+                # Рисуем иконку точно в центре
+                painter = QPainter(centered_pixmap)
+                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+                
+                # Вычисляем позицию для идеального центрирования
+                # (35-27)/2 = 4 пикселя с каждой стороны
+                x = (35 - scaled_pixmap.width()) // 2
+                y = (35 - scaled_pixmap.height()) // 2
+                
+                painter.drawPixmap(x, y, scaled_pixmap)
+                painter.end()
+                
+                self.view_mode_button.setIcon(QIcon(centered_pixmap))
+                self.view_mode_button.setIconSize(QSize(35, 35))
+                self.view_mode_button.setText("")
+            else:
+                self.view_mode_button.setText("☰")
+            self.view_mode_button.setToolTip(t("view_mode.switch_to_list"))
+        else:
+            # Показываем иконку плитки (переключить на плитку)
+            icon_path = get_icon_path("icontab.png")
+            if icon_path:
+                original_pixmap = QPixmap(icon_path)
+                
+                centered_pixmap = QPixmap(35, 35)
+                centered_pixmap.fill(Qt.GlobalColor.transparent)
+                
+                # Масштабируем иконку до 27x27 (нечетное число для лучшего центрирования)
+                scaled_pixmap = original_pixmap.scaled(
+                    27, 27, 
+                    Qt.AspectRatioMode.KeepAspectRatio, 
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                
+                # Рисуем иконку точно в центре
+                painter = QPainter(centered_pixmap)
+                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+                
+                # Вычисляем позицию для идеального центрирования
+                # (35-27)/2 = 4 пикселя с каждой стороны
+                x = (35 - scaled_pixmap.width()) // 2
+                y = (35 - scaled_pixmap.height()) // 2
+                
+                painter.drawPixmap(x, y, scaled_pixmap)
+                painter.end()
+                
+                self.view_mode_button.setIcon(QIcon(centered_pixmap))
+                self.view_mode_button.setIconSize(QSize(35, 35))
+                self.view_mode_button.setText("")
+            else:
+                self.view_mode_button.setText("⊞")
+            self.view_mode_button.setToolTip(t("view_mode.switch_to_grid"))
     
     def update_scan_button_icon(self, scanning=False):
         """Обновление иконки кнопки сканирования"""
@@ -1250,8 +1434,78 @@ class ProgramsTab(QWidget):
                 self.status_manager.check_programs_status(self.all_programs)
                 self.display_programs()
         except Exception as e:
-            print(f"Ошибка сканирования: {e}")
+            log_error(f"Ошибка сканирования: {e}")
         finally:
             self.scan_in_progress = False
             self.update_scan_button_icon(False) 
             self.scan_button.setEnabled(True)
+    
+    def cleanup(self):
+        """Очистка ресурсов при закрытии вкладки"""
+        try:
+            # Останавливаем фоновый сканер если он запущен
+            if self.background_scanner and self.background_scanner.isRunning():
+                self.background_scanner.quit()
+                self.background_scanner.wait(3000)  # Ждем максимум 3 секунды
+                if self.background_scanner.isRunning():
+                    self.background_scanner.terminate()
+                    self.background_scanner.wait(1000)
+                self.background_scanner = None
+            
+            if hasattr(self, 'combo_box') and self.combo_box:
+                self.combo_box.currentIndexChanged.disconnect()
+            
+            # Очищаем анимации
+            if hasattr(self, 'info_panel') and self.info_panel:
+                if hasattr(self.info_panel, 'fade_animation'):
+                    self.info_panel.fade_animation.stop()
+                    
+        except Exception as e:
+            log_error(f"Ошибка при очистке ProgramsTab: {e}")
+    
+    def update_translations(self):
+        """Обновление переводов при смене языка"""
+        from localization import t, translate_category
+        
+        if hasattr(self, 'title_label'):
+            self.title_label.setText(t("tabs.programs"))
+        
+        if hasattr(self, 'search_input'):
+            self.search_input.setPlaceholderText(t("search.programs_placeholder"))
+        
+        if hasattr(self, 'category_filter'):
+            current_data = self.category_filter.currentData()
+            
+            # Пересоздаем список категорий с новыми переводами
+            self.category_filter.clear()
+            self.category_filter.addItem(t("categories.all"), "")
+            self.category_filter.addItem(t("categories.favorites"), "favorites")
+            
+            categories_set = set()
+            for program in self.all_programs:
+                if "category" in program:
+                    categories = program["category"].split(",")
+                    for cat in categories:
+                        cat = cat.strip()
+                        if cat:
+                            categories_set.add(cat)
+            
+            for category in sorted(categories_set):
+                translated_category = translate_category(category)
+                self.category_filter.addItem(translated_category, category)
+            
+            # Восстанавливаем выбранный элемент
+            for i, (text, data) in enumerate(self.category_filter.items):
+                if data == current_data:
+                    self.category_filter.setCurrentIndex(i)
+                    break
+        
+        # Перерисовываем карточки программ
+        self.display_programs()
+        
+        if hasattr(self, 'info_panel') and self.info_panel.isVisible():
+            self.info_panel.refresh_content()
+    
+    def __del__(self):
+        """Деструктор"""
+        self.cleanup()

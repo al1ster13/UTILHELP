@@ -9,6 +9,7 @@ import ctypes
 import sys
 from downloads_manager import get_downloads_manager
 from scroll_helper import configure_scroll_area
+from localization import t
 
 
 def run_file_as_admin(file_path):
@@ -47,9 +48,9 @@ class DownloadsTab(QWidget):
             }
         """)
         
-        title_label = QLabel("БИБЛИОТЕКА")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("""
+        self.title_label = QLabel(t("tabs.library"))
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet("""
             QLabel {
                 color: #ffffff;
                 font-size: 28px;
@@ -58,7 +59,7 @@ class DownloadsTab(QWidget):
                 letter-spacing: 2px;
             }
         """)
-        self.layout.addWidget(title_label)
+        self.layout.addWidget(self.title_label)
         
         self.info_layout = QHBoxLayout()
         self.info_layout.setContentsMargins(100, 0, 100, 15)
@@ -155,14 +156,14 @@ class DownloadsTab(QWidget):
         
         from resource_path import get_icon_path
         
-        count_text = f"Файлов: {len(downloads)}"
+        count_text = t("library.files_count", count=len(downloads))
         box_icon_path = get_icon_path("box.png")
         if box_icon_path:
             self.count_label.setText(f'<img src="{box_icon_path}" width="20" height="20" style="vertical-align: top; margin-right: 5px;"> {count_text}')
         else:
             self.count_label.setText(f"📦 {count_text}")
         
-        size_text = f"Общий размер: {manager.get_total_size()}"
+        size_text = t("library.total_size", size=manager.get_total_size())
         filesize_icon_path = get_icon_path("filesize.png")
         if filesize_icon_path:
             self.size_label.setText(f'<img src="{filesize_icon_path}" width="20" height="20" style="vertical-align: top; margin-right: 5px;"> {size_text}')
@@ -222,7 +223,7 @@ class DownloadsTab(QWidget):
             empty_icon.setStyleSheet(empty_icon.styleSheet() + "background: transparent; border: none;")
             empty_layout.addWidget(empty_icon)
             
-            empty_label = QLabel("Библиотека пуста")
+            empty_label = QLabel(t("library.empty_title"))
             empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_label.setStyleSheet("""
                 QLabel {
@@ -235,7 +236,7 @@ class DownloadsTab(QWidget):
             """)
             empty_layout.addWidget(empty_label)
             
-            hint_label = QLabel("Скачайте программы или драйверы,\nи они появятся здесь")
+            hint_label = QLabel(t("library.empty_hint"))
             hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             hint_label.setStyleSheet("""
                 QLabel {
@@ -303,16 +304,50 @@ class DownloadsTab(QWidget):
             }
         """)
         
-        if download.get("icon_path") and os.path.exists(download["icon_path"]):
-            pixmap = QPixmap(download["icon_path"])
-            if not pixmap.isNull():
-                scaled_pixmap = pixmap.scaled(
-                    85, 85,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                icon_label.setPixmap(scaled_pixmap)
+        icon_path = download.get("icon_path")
+        if icon_path:
+            icon_exists = icon_path.startswith(":/") or os.path.exists(icon_path)
+            
+            if icon_exists:
+                pixmap = QPixmap(icon_path)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(
+                        85, 85,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    icon_label.setPixmap(scaled_pixmap)
+                else:
+                    # Fallback на коробку
+                    from resource_path import get_icon_path
+                    box_icon_path = get_icon_path("fallbackbox.png")
+                    if box_icon_path:
+                        box_pixmap = QPixmap(box_icon_path)
+                        if not box_pixmap.isNull():
+                            scaled_box = box_pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                            icon_label.setPixmap(scaled_box)
+                        else:
+                            icon_label.setText("📦")
+                            icon_label.setStyleSheet("""
+                                QLabel {
+                                    color: #cccccc;
+                                    font-size: 52px;
+                                    background: transparent;
+                                    border: none;
+                                }
+                            """)
+                    else:
+                        icon_label.setText("📦")
+                        icon_label.setStyleSheet("""
+                            QLabel {
+                                color: #cccccc;
+                                font-size: 52px;
+                                background: transparent;
+                                border: none;
+                            }
+                        """)
             else:
+                # Путь указан но файл не существует - fallback
                 from resource_path import get_icon_path
                 box_icon_path = get_icon_path("fallbackbox.png")
                 if box_icon_path:
@@ -341,6 +376,7 @@ class DownloadsTab(QWidget):
                         }
                     """)
         else:
+            # Нет icon_path - показываем fallback
             from resource_path import get_icon_path
             box_icon_path = get_icon_path("fallbackbox.png")
             if box_icon_path:
@@ -483,7 +519,7 @@ class DownloadsTab(QWidget):
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(10)
         
-        run_btn = QPushButton("▶ Запустить")
+        run_btn = QPushButton(t("buttons.run"))
         run_btn.setFixedHeight(36)
         run_btn.clicked.connect(lambda: self.run_file(download))
         run_btn.setStyleSheet("""
@@ -585,7 +621,7 @@ class DownloadsTab(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
         
-        title_label = QLabel("Подтверждение")
+        title_label = QLabel(t("library.confirmation"))
         title_label.setStyleSheet("""
             QLabel {
                 color: #ffffff;
@@ -597,7 +633,7 @@ class DownloadsTab(QWidget):
         """)
         layout.addWidget(title_label)
         
-        message_label = QLabel(f"Удалить файл '{download['original_name']}'?")
+        message_label = QLabel(t("library.delete_confirm", name=download['original_name']))
         message_label.setWordWrap(True)
         message_label.setStyleSheet("""
             QLabel {
@@ -614,7 +650,7 @@ class DownloadsTab(QWidget):
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(10)
         
-        cancel_btn = QPushButton("Отмена")
+        cancel_btn = QPushButton(t("buttons.cancel"))
         cancel_btn.setFixedHeight(35)
         cancel_btn.setStyleSheet("""
             QPushButton {
@@ -656,7 +692,7 @@ class DownloadsTab(QWidget):
         
         buttons_layout.addStretch()
         
-        delete_btn = QPushButton("Удалить")
+        delete_btn = QPushButton(t("buttons.delete"))
         delete_btn.setFixedHeight(35)
         delete_btn.setStyleSheet("""
             QPushButton {
@@ -717,7 +753,7 @@ class DownloadsTab(QWidget):
                 error_layout.setContentsMargins(30, 30, 30, 30)
                 error_layout.setSpacing(20)
                 
-                error_label = QLabel("Не удалось удалить файл")
+                error_label = QLabel(t("library.delete_error"))
                 error_label.setStyleSheet("""
                     QLabel {
                         color: #f44336;
@@ -792,4 +828,14 @@ class DownloadsTab(QWidget):
         if hasattr(self, 'scroll_area'):
             self.scroll_area.verticalScrollBar().setValue(0)
         
+        self.load_downloads()
+    
+    def update_translations(self):
+        """Обновление переводов при смене языка"""
+        from localization import t
+        
+        if hasattr(self, 'title_label'):
+            self.title_label.setText(t("tabs.library"))
+        
+        # Перезагружаем список загрузок
         self.load_downloads()

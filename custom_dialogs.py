@@ -250,9 +250,15 @@ class CustomNewsDialog(QDialog):
         super().__init__(parent)
         
         import re
+        from localization import t
         
-        date_match = re.search(r'<strong>Дата:</strong>\s*([^<]+)', content)
-        date_text = date_match.group(1).strip() if date_match else "Дата не указана"
+        # Ищем дату в параграфе с цветом #888888
+        date_match = re.search(r'<p[^>]*color:\s*#888888[^>]*>(.*?)</p>', content, re.DOTALL)
+        if date_match:
+            date_text = date_match.group(1).strip()
+        else:
+            date_match = re.search(r'<strong>Дата:</strong>\s*([^<]+)', content)
+            date_text = date_match.group(1).strip() if date_match else t("news.date_not_specified")
         
         description_match = re.search(r'<div[^>]*margin-top:\s*15px[^>]*>(.*?)</div>', content, re.DOTALL)
         description_text = description_match.group(1).strip() if description_match else content
@@ -356,42 +362,13 @@ class CustomNewsDialog(QDialog):
         
         bg_layout.addLayout(title_layout)
         
-        title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 18px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                margin-bottom: 10px;
-                text-align: center;
-            }
-        """)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bg_layout.addWidget(title_label)
-        
-        date_label = QLabel(f"Дата: {date_text}")
-        date_label.setStyleSheet("""
-            QLabel {
-                color: #888888;
-                font-size: 12px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                margin-bottom: 15px;
-                text-align: center;
-            }
-        """)
-        date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bg_layout.addWidget(date_label)
+        # Просто показываем контент
         
         content_label = QLabel()
         content_label.setTextFormat(Qt.TextFormat.RichText)  
         
-        formatted_description = f"""
-        <div style="color: #ffffff; line-height: 1.6; font-size: 13px; font-family: 'Segoe UI', Arial, sans-serif;">
-            {description_text}
-        </div>
-        """
-        content_label.setText(formatted_description)
+        # Используем весь переданный контент (он уже содержит заголовок, дату и описание)
+        content_label.setText(content)
         content_label.setStyleSheet("""
             QLabel {
                 color: #ffffff;

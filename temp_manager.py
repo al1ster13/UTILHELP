@@ -5,72 +5,14 @@ import atexit
 from pathlib import Path
 
 
-def debug_log(message):
-    """Улучшенное логирование с разбивкой по дням и сессиям"""
-    try:
-        import datetime
-        now = datetime.datetime.now()
-        date_str = now.strftime("%d.%m.%Y")
-        
-        system_temp = tempfile.gettempdir()
-        
-        log_folder = None
-        for folder_name in ["UTILHELPTEMP", "UTILHELP", "UH"]:
-            utilhelp_folder = os.path.join(system_temp, folder_name)
-            if os.path.exists(utilhelp_folder) and os.access(utilhelp_folder, os.W_OK):
-                log_folder = utilhelp_folder
-                break
-        
-        if not log_folder:
-            log_folder = system_temp
-        
-        base_log_name = f"utilhelp_debug_{date_str}.log"
-        log_file = os.path.join(log_folder, base_log_name)
-        
-        session_number = 1
-        if os.path.exists(log_file):
-            try:
-                with open(log_file, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-                    if lines:
-                        last_line = lines[-1].strip()
-                        if "SESSION START" in last_line:
-                            pass
-                        else:
-                            try:
-                                if "[" in last_line and "]" in last_line:
-                                    time_part = last_line.split("]")[0][1:]
-                                    last_time = datetime.datetime.strptime(time_part, "%Y-%m-%d %H:%M:%S")
-                                    time_diff = now - last_time
-                                    
-                                    if time_diff.total_seconds() > 3600:  # 1 час
-                                        while True:
-                                            session_log_name = f"utilhelp_debug_{date_str}({session_number}).log"
-                                            session_log_file = os.path.join(log_folder, session_log_name)
-                                            if not os.path.exists(session_log_file):
-                                                log_file = session_log_file
-                                                break
-                                            session_number += 1
-                                            if session_number > 50:  
-                                                break
-                            except:
-                                pass
-            except:
-                pass
-        
-        add_session_header = not os.path.exists(log_file)
-        
-        with open(log_file, 'a', encoding='utf-8') as f:
-            if add_session_header:
-                f.write(f"\n{'='*60}\n")
-                f.write(f"SESSION START: {now.strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"{'='*60}\n")
-            
-            timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
-            f.write(f"[{timestamp}] {message}\n")
-            
-    except:
-        pass  
+# Импортируем новую систему логирования
+try:
+    from logger import debug_log
+except ImportError:
+    # Fallback если logger.py еще не доступен
+    def debug_log(message):
+        """Временная заглушка для совместимости"""
+        print(f"[DEBUG] {message}")
 
 
 class TempManager:

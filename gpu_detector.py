@@ -72,10 +72,11 @@ class HardwareDetector:
     
     @staticmethod
     def get_recommendation_text(vendor):
+        from localization import t
         recommendations = {
-            'nvidia': 'Рекомендовано для вашего ПК',
-            'amd': 'Рекомендовано для вашего ПК', 
-            'intel': 'Рекомендовано для вашего ПК',
+            'nvidia': t('status.recommended'),
+            'amd': t('status.recommended'), 
+            'intel': t('status.recommended'),
             'unknown': ''
         }
         

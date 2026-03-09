@@ -5,10 +5,29 @@ import tempfile
 import traceback
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QTimer, QSharedMemory
+
+# Импортируем скомпилированные Qt ресурсы
+try:
+    import resources_rc
+    print("✅ Qt resources loaded")
+except ImportError:
+    print("⚠️ Qt resources not found, using fallback to file system")
+
+# Извлекаем ресурсы в файловую систему (звуки для QSoundEffect)
+try:
+    from resource_extractor import extract_resources_on_startup
+    if extract_resources_on_startup():
+        print("✅ Resources extracted to assets/")
+    else:
+        print("⚠️ Resource extraction skipped or failed")
+except Exception as e:
+    print(f"⚠️ Resource extraction error: {e}")
+
 from splash_screen import SplashScreen
 from main_window import MainWindow
 from temp_manager import get_temp_manager
 from json_data_manager import get_json_manager
+from logger import get_logger, log_info, log_error, log_warning
 
 
 def is_portable_mode():
@@ -16,13 +35,10 @@ def is_portable_mode():
     try:
         # Получаем путь к папке с программой
         if getattr(sys, 'frozen', False):
-            # Если программа скомпилирована
             app_dir = os.path.dirname(sys.executable)
         else:
-            # Если запускается из исходников
             app_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # Проверяем наличие маркера портативной версии
         portable_marker = os.path.join(app_dir, "PORTABLE_MODE.txt")
         return os.path.exists(portable_marker)
     except:
@@ -33,60 +49,73 @@ def get_app_data_dir():
     """Получение папки для данных приложения"""
     import sys
     
-    # Получаем путь к папке с программой
-    if getattr(sys, 'frozen', False):
-        app_dir = os.path.dirname(sys.executable)
-    else:
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-    
     if is_portable_mode():
         # В портативном режиме используем папку программы
-        return app_dir
+        if getattr(sys, 'frozen', False):
+            return os.path.dirname(sys.executable)
+        else:
+            return os.path.dirname(os.path.abspath(__file__))
     else:
-        # В обычном режиме пробуем использовать AppData
-        try:
-            appdata = os.environ.get('APPDATA')
-            if appdata:
-                utilhelp_data = os.path.join(appdata, 'UTILHELP')
-                os.makedirs(utilhelp_data, exist_ok=True)
-                # Проверяем права на запись
-                test_file = os.path.join(utilhelp_data, 'test_write.tmp')
-                try:
-                    with open(test_file, 'w') as f:
-                        f.write('test')
-                    os.remove(test_file)
-                    print(f"✓ Using AppData directory: {utilhelp_data}")
-                    return utilhelp_data
-                except:
-                    print("✗ AppData not writable, using app directory")
-                    pass
-        except:
-            pass
+        # В обычном режиме ВСЕГДА используем AppData
+        appdata = os.environ.get('APPDATA')
+        if not appdata:
+            # Fallback если APPDATA не определен
+            import tempfile
+            return os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
         
-        # Если AppData не работает, используем папку программы
-        print(f"✓ Using app directory: {app_dir}")
-        return app_dir
+        utilhelp_data = os.path.join(appdata, 'UTILHELP')
+        
+        try:
+            os.makedirs(utilhelp_data, exist_ok=True)
+            test_file = os.path.join(utilhelp_data, 'test_write.tmp')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            print(f"✓ Using AppData directory: {utilhelp_data}")
+            return utilhelp_data
+        except Exception as e:
+            print(f"✗ Error accessing AppData: {e}")
+            # Fallback на временную папку
+            import tempfile
+            temp_data = os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
+            try:
+                os.makedirs(temp_data, exist_ok=True)
+                print(f"✓ Using temporary directory: {temp_data}")
+                return temp_data
+            except:
+                print("✗ Failed to create any data directory")
+                if getattr(sys, 'frozen', False):
+                    return os.path.dirname(sys.executable)
+                else:
+                    return os.path.dirname(os.path.abspath(__file__))
+
+
+def get_downloads_dir():
+    """Получение папки для скачанных файлов"""
+    app_data_dir = get_app_data_dir()
+    return os.path.join(app_data_dir, "UTILHELPFILES")
 
 
 def setup_portable_environment():
     """Настройка окружения для портативного режима"""
     app_data_dir = get_app_data_dir()
     
-    # Создаем необходимые папки
     data_dir = os.path.join(app_data_dir, "data")
-    uhdownload_dir = os.path.join(app_data_dir, "UHDOWNLOAD")
+    downloads_dir = get_downloads_dir()
     
     try:
         os.makedirs(data_dir, exist_ok=True)
-        os.makedirs(uhdownload_dir, exist_ok=True)
+        os.makedirs(downloads_dir, exist_ok=True)
         
-        # Проверяем права на запись
         test_file = os.path.join(data_dir, 'test_write.tmp')
         with open(test_file, 'w') as f:
             f.write('test')
         os.remove(test_file)
         
-        print(f"✓ Data directories created: {app_data_dir}")
+        print(f"✓ Data directories created:")
+        print(f"  - AppData: {app_data_dir}")
+        print(f"  - Data: {data_dir}")
+        print(f"  - Downloads: {downloads_dir}")
         
         if is_portable_mode():
             # В портативном режиме меняем рабочую директорию
@@ -96,12 +125,14 @@ def setup_portable_environment():
         return True
         
     except Exception as e:
-        print(f"✗ Error setting up data directories: {e}")
+        log_error(f"✗ Error setting up data directories: {e}")
         # В крайнем случае используем временную папку
         import tempfile
         temp_data = os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
         try:
             os.makedirs(temp_data, exist_ok=True)
+            os.makedirs(os.path.join(temp_data, "data"), exist_ok=True)
+            os.makedirs(os.path.join(temp_data, "UTILHELPFILES"), exist_ok=True)
             print(f"✓ Using temporary data directory: {temp_data}")
             return True
         except:
@@ -147,8 +178,8 @@ def cleanup_and_exit():
     try:
         temp_manager = get_temp_manager()
         try:
-            from temp_manager import debug_log
-            debug_log("Program exit - temp files preserved")
+            from logger import log_info
+            log_info("Program exit - temp files preserved")
         except:
             pass
     except Exception as e:
@@ -157,15 +188,29 @@ def cleanup_and_exit():
 shared_memory = None 
 
 if __name__ == "__main__":
-    print("Запуск программы...")
+    log_info("=== UTILHELP Starting ===")
+    log_info("Запуск программы...")
     
-    # Настройка портативного режима
-    setup_portable_environment()
+    try:
+        setup_portable_environment()
+        log_info("Портативное окружение настроено")
+    except Exception as e:
+        log_error(f"Ошибка настройки портативного окружения: {e}", exc_info=True)
     
-    print("Создание QApplication...")
+    try:
+        from localization import get_localization
+        from settings_manager import settings_manager
+        
+        localization = get_localization()
+        saved_language = settings_manager.get_setting("language", "ru")
+        localization.set_language(saved_language)
+        log_info(f"Локализация инициализирована: {saved_language}")
+    except Exception as e:
+        log_error(f"Ошибка инициализации локализации: {e}", exc_info=True)
+    
+    log_info("Создание QApplication...")
     app = QApplication(sys.argv)
     
-    # Устанавливаем иконку приложения для панели задач
     from resource_path import get_icon_path
     from PyQt6.QtGui import QIcon
     
@@ -272,7 +317,7 @@ if __name__ == "__main__":
                 traceback.print_exc()
         
         def on_data_failed(error):
-            print(f"✗ Ошибка загрузки данных: {error}")
+            log_error(f"✗ Ошибка загрузки данных: {error}")
             try:
                 window.on_data_failed(error)
             except Exception as e:

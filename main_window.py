@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from PyQt6.QtWidgets import (QMainWindow, QLabel, QPushButton, QVBoxLayout, QWidget, 
                              QHBoxLayout, QTabWidget, QFrame, QScrollArea, QProgressBar, 
                              QGraphicsOpacityEffect, QApplication, QMessageBox)
-from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QPixmap, QIcon, QGuiApplication
+from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QPixmap, QIcon, QGuiApplication, QKeySequence, QShortcut
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QTimer, pyqtSignal, pyqtProperty, QSize
 from news_tab import NewsTab
 from programs_tab import ProgramsTab
@@ -21,1990 +21,11 @@ from json_data_manager import get_json_manager
 from loading_widget import LoadingWidget, NoInternetWidget
 from scroll_helper import configure_scroll_area
 from notification_manager import get_notification_manager
-
-
-class SettingsTab(QWidget):
-    """Вкладка настроек с боковой панелью - сделал для удобства навигации"""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.parent_window = parent
-        main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(0, 3, 0, 3)
-        main_layout.setSpacing(0)
-        
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
-                border-radius: 10px;
-            }
-        """)
-        
-        self.snow_enabled = False
-        self.theme_light = False
-        self.snow_toggle = None
-        self.theme_toggle = None
-        
-        self.theme_development_dialog = None
-        
-        self.create_sidebar(main_layout)
-        self.create_content_area(main_layout)
-        self.show_interface_settings()
-
-    def load_icon_pixmap(self, icon_name, size=None):
-        """Загрузить иконку с правильным путем для exe"""
-        icon_path = get_icon_path(icon_name)
-        
-        if icon_path:
-            pixmap = QPixmap(icon_path)
-            
-            if not pixmap.isNull() and size:
-                scaled = pixmap.scaled(size[0], size[1], Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                return scaled
-            return pixmap
-        
-        return QPixmap()  
-
-    def create_icon_label(self, icon_name, size=(24, 24), fallback_text="•"):
-        """Создать QLabel с иконкой и fallback текстом"""
-        icon_label = QLabel()
-        pixmap = self.load_icon_pixmap(icon_name, size)
-        if not pixmap.isNull():
-            icon_label.setPixmap(pixmap)
-        else:
-            icon_label.setText(fallback_text)
-            icon_label.setStyleSheet(f"font-size: {size[0]}px; color: #ffffff;")
-        
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        icon_label.setContentsMargins(0, 2, 0, 0)
-        return icon_label
-
-    def create_sidebar(self, main_layout):
-        """Создание боковой панели с кнопками"""
-        sidebar = QWidget()
-        sidebar.setFixedWidth(200)
-        sidebar.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border-top-left-radius: 10px;
-                border-bottom-left-radius: 10px;
-            }
-        """)
-        
-        sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(0, 15, 0, 15)
-        sidebar_layout.setSpacing(5)
-        
-        # Заголовок настроек
-        title_label = QLabel("НАСТРОЙКИ")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 18px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                margin: 0px 0px 15px 0px;
-                letter-spacing: 1px;
-            }
-        """)
-        sidebar_layout.addWidget(title_label)
-        
-        # Кнопки меню
-        self.interface_btn = self.create_menu_button("interface.png", "Интерфейс", True)
-        self.interface_btn.clicked.connect(self.show_interface_settings)
-        sidebar_layout.addWidget(self.interface_btn)
-        
-        self.temp_files_btn = self.create_menu_button("tempfile.png", "Файлы", False)
-        self.temp_files_btn.clicked.connect(self.show_temp_files_settings)
-        sidebar_layout.addWidget(self.temp_files_btn)
-        
-        self.updates_btn = self.create_menu_button("updatetab.png", "Обновления", False)
-        self.updates_btn.clicked.connect(self.show_updates_settings)
-        sidebar_layout.addWidget(self.updates_btn)
-        
-        self.about_btn = self.create_menu_button("info.png", "О программе", False)
-        self.about_btn.clicked.connect(self.show_about_settings)
-        sidebar_layout.addWidget(self.about_btn)
-        
-        self.contacts_btn = self.create_menu_button("contacts.png", "Контакты", False)
-        self.contacts_btn.clicked.connect(self.show_contacts_settings)
-        sidebar_layout.addWidget(self.contacts_btn)
-        
-        sidebar_layout.addStretch()
-        main_layout.addWidget(sidebar)
-
-    def create_menu_button(self, icon_name, text, active=False):
-        """Создание кнопки меню"""
-        btn = QPushButton()
-        
-        try:
-            icon_path = get_icon_path(icon_name)
-            if icon_path:
-                pixmap = QPixmap(icon_path)
-                if not pixmap.isNull():
-                    icon = QIcon(pixmap)
-                    btn.setIcon(icon)
-                    btn.setIconSize(pixmap.size().boundedTo(QPixmap(16, 16).size()))
-                    btn.setText(f"  {text}")
-                else:
-                    btn.setText("•  " + text)
-            else:
-                btn.setText("•  " + text)
-        except:
-            btn.setText("•  " + text)
-        
-        btn.setFixedHeight(50)
-        
-        if active:
-            btn.setStyleSheet(self.get_active_button_style())
-        else:
-            btn.setStyleSheet(self.get_inactive_button_style())
-        
-        return btn
-
-    def get_active_button_style(self):
-        """Стиль активной кнопки"""
-        return """
-            QPushButton {
-                background-color: #404040;
-                color: #ffffff;
-                border: none;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: normal;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                text-align: left;
-                padding-left: 20px;
-                margin: 2px 10px;
-                outline: none;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-            }
-            QPushButton:focus {
-                outline: none;
-                border: none;
-            }
-        """
-
-    def get_inactive_button_style(self):
-        """Стиль неактивной кнопки"""
-        return """
-            QPushButton {
-                background-color: transparent;
-                color: #cccccc;
-                border: none;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: normal;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                text-align: left;
-                padding-left: 20px;
-                margin: 2px 10px;
-                outline: none;
-            }
-            QPushButton:hover {
-                background-color: #2d2d2d;
-                color: #ffffff;
-            }
-            QPushButton:focus {
-                outline: none;
-                border: none;
-            }
-        """
-    def create_content_area(self, main_layout):
-        """Создание области содержимого"""
-        self.content_area = QWidget()
-        self.content_area.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
-                border-top-right-radius: 10px;
-                border-bottom-right-radius: 10px;
-            }
-        """)
-        
-        self.content_layout = QVBoxLayout(self.content_area)
-        self.content_layout.setContentsMargins(40, 30, 40, 30)
-        self.content_layout.setSpacing(25)
-        
-        main_layout.addWidget(self.content_area)
-
-    def clear_content(self):
-        """Очистка содержимого"""
-        if hasattr(self, 'cleanup_message'):
-            self.cleanup_message = None
-            
-        while self.content_layout.count():
-            child = self.content_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-
-    def show_interface_settings(self):
-        """Показать настройки интерфейса"""
-        self.interface_btn.setStyleSheet(self.get_active_button_style())
-        self.temp_files_btn.setStyleSheet(self.get_inactive_button_style())
-        self.updates_btn.setStyleSheet(self.get_inactive_button_style())
-        self.about_btn.setStyleSheet(self.get_inactive_button_style())
-        self.contacts_btn.setStyleSheet(self.get_inactive_button_style())
-        
-        self.clear_content()
-        
-        self.content_layout.setContentsMargins(40, 30, 40, 30)
-        
-        title_layout = QHBoxLayout()
-        title_layout.setSpacing(10)
-        title_layout.setContentsMargins(0, 0, 0, 20)
-        
-        icon_label = self.create_icon_label("interface.png", (24, 24))
-        
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        icon_label.setContentsMargins(0, 4, 0, 0)
-        title_layout.addWidget(icon_label)
-        
-        title_text = QLabel("Настройки интерфейса")
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 24px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-            }
-        """)
-        title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        title_layout.addWidget(title_text)
-        title_layout.addStretch()
-        
-        title_container = QWidget()
-        title_container.setLayout(title_layout)
-        self.content_layout.addWidget(title_container)
-        
-        self.snow_toggle = ToggleSwitch()
-        self.snow_toggle.setChecked(self.snow_enabled)
-        if self.parent_window:
-            self.snow_toggle.toggled.connect(self.parent_window.toggle_snow)
-            self.snow_toggle.toggled.connect(self.save_snow_state)
-        
-        snow_setting = self.create_setting_item(
-            "snowflake.png", 
-            "Снегопад", 
-            "Анимированные снежинки на фоне приложения для создания праздничной атмосферы",
-            self.snow_toggle
-        )
-        self.content_layout.addWidget(snow_setting)
-        
-        self.theme_toggle = DisabledToggleSwitch()
-        self.theme_toggle.setChecked(self.theme_light)  # Всегда False
-        self.theme_toggle.toggled.connect(self.handle_theme_toggle)
-        
-        theme_setting = self.create_setting_item(
-            "whitetheme.png", 
-            "Светлая тема", 
-            "Переключение между темной и светлой темой интерфейса",
-            self.theme_toggle
-        )
-        self.content_layout.addWidget(theme_setting)
-        
-
-        
-        self.content_layout.addStretch()
-
-    def show_updates_settings(self):
-        """Показать настройки обновлений"""
-        
-        self.interface_btn.setStyleSheet(self.get_inactive_button_style())
-        self.temp_files_btn.setStyleSheet(self.get_inactive_button_style())
-        self.updates_btn.setStyleSheet(self.get_active_button_style())
-        self.about_btn.setStyleSheet(self.get_inactive_button_style())
-        self.contacts_btn.setStyleSheet(self.get_inactive_button_style())
-        
-        self.clear_content()
-        
-        self.content_layout.setContentsMargins(40, 30, 40, 30)
-        
-        title_layout = QHBoxLayout()
-        title_layout.setSpacing(10)
-        title_layout.setContentsMargins(0, 0, 0, 20)
-        
-        icon_label = self.create_icon_label("updatetab.png", (24, 24))
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        icon_label.setContentsMargins(0, 2, 0, 0)
-        title_layout.addWidget(icon_label)
-        
-        title_text = QLabel("Обновления")
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 24px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-            }
-        """)
-        title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        title_layout.addWidget(title_text)
-        title_layout.addStretch()
-        
-        title_container = QWidget()
-        title_container.setLayout(title_layout)
-        self.content_layout.addWidget(title_container)
-        
-        # Виджет обновлений (как настройка)
-        update_widget = self.create_simple_update_widget()
-        self.content_layout.addWidget(update_widget)
-        
-        self.content_layout.addStretch()
-
-    def show_about_settings(self):
-        """Показать информацию о программе"""
-        self.interface_btn.setStyleSheet(self.get_inactive_button_style())
-        self.temp_files_btn.setStyleSheet(self.get_inactive_button_style())
-        self.updates_btn.setStyleSheet(self.get_inactive_button_style())
-        self.about_btn.setStyleSheet(self.get_active_button_style())
-        self.contacts_btn.setStyleSheet(self.get_inactive_button_style())
-        
-        self.clear_content()
-        
-        self.content_layout.setContentsMargins(40, 30, 40, 30)
-        
-        title_layout = QHBoxLayout()
-        title_layout.setSpacing(10)
-        title_layout.setContentsMargins(0, 0, 0, 20)
-        
-        icon_label = self.create_icon_label("info.png", (24, 24))
-        
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        icon_label.setContentsMargins(0, 2, 0, 0)
-        title_layout.addWidget(icon_label)
-        
-        title_text = QLabel("О программе")
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 24px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-            }
-        """)
-        title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        title_layout.addWidget(title_text)
-        title_layout.addStretch()
-        
-        title_container = QWidget()
-        title_container.setLayout(title_layout)
-        self.content_layout.addWidget(title_container)
-        
-        info_widget = self.create_info_widget()
-        self.content_layout.addWidget(info_widget)
-        
-        self.content_layout.addStretch()
-
-    def show_contacts_settings(self):
-        """Показать контактную информацию"""
-        self.interface_btn.setStyleSheet(self.get_inactive_button_style())
-        self.temp_files_btn.setStyleSheet(self.get_inactive_button_style())
-        self.updates_btn.setStyleSheet(self.get_inactive_button_style())
-        self.about_btn.setStyleSheet(self.get_inactive_button_style())
-        self.contacts_btn.setStyleSheet(self.get_active_button_style())
-        
-        self.clear_content()
-        
-        self.content_layout.setContentsMargins(40, 30, 40, 30)
-        
-        title_layout = QHBoxLayout()
-        title_layout.setSpacing(10)
-        title_layout.setContentsMargins(0, 0, 0, 20)
-        
-        icon_label = self.create_icon_label("contacts.png", (24, 24))
-        
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        icon_label.setContentsMargins(0, 2, 0, 0)
-        title_layout.addWidget(icon_label)
-        
-        title_text = QLabel("Контакты")
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 24px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-            }
-        """)
-        title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        title_layout.addWidget(title_text)
-        title_layout.addStretch()
-        
-        title_container = QWidget()
-        title_container.setLayout(title_layout)
-        self.content_layout.addWidget(title_container)
-        
-        contacts_widget = self.create_contacts_widget()
-        self.content_layout.addWidget(contacts_widget)
-        
-        self.content_layout.addStretch()
-
-    def show_temp_files_settings(self):
-        """Показать настройки временных файлов"""
-        self.interface_btn.setStyleSheet(self.get_inactive_button_style())
-        self.temp_files_btn.setStyleSheet(self.get_active_button_style())
-        self.updates_btn.setStyleSheet(self.get_inactive_button_style())
-        self.about_btn.setStyleSheet(self.get_inactive_button_style())
-        self.contacts_btn.setStyleSheet(self.get_inactive_button_style())
-        
-        self.clear_content()
-        
-        self.content_layout.setContentsMargins(40, 30, 40, 30)
-        
-        title_layout = QHBoxLayout()
-        title_layout.setSpacing(10)
-        title_layout.setContentsMargins(0, 0, 0, 20)
-        
-        icon_label = self.create_icon_label("tempfile.png", (24, 24))
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        icon_label.setContentsMargins(0, 2, 0, 0)
-        title_layout.addWidget(icon_label)
-        
-        title_text = QLabel("Файлы")
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 24px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-            }
-        """)
-        title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        title_layout.addWidget(title_text)
-        title_layout.addStretch()
-        
-        title_container = QWidget()
-        title_container.setLayout(title_layout)
-        self.content_layout.addWidget(title_container)
-        
-        temp_info_widget = self.create_temp_files_widget()
-        self.content_layout.addWidget(temp_info_widget)
-        
-        update_container = QWidget()
-        update_container_layout = QHBoxLayout(update_container)
-        update_container_layout.setContentsMargins(8, 0, 8, 0)  
-        update_container_layout.setSpacing(0)
-        
-        update_button = self.create_update_data_button()
-        update_container_layout.addWidget(update_button)
-        
-        self.content_layout.addWidget(update_container)
-        
-        self.content_layout.addStretch()
-
-    def create_temp_files_widget(self):
-        """Создание виджета с информацией о временных файлах"""
-        
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setSpacing(20)
-        
-        temp_manager = get_temp_manager()
-        
-        info_text = QLabel(f"Папка временных файлов:\n{temp_manager.get_temp_dir()}")
-        info_text.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 14px;
-                background-color: #2d2d2d;
-                border-radius: 8px;
-                padding: 15px;
-                border: 1px solid #404040;
-            }
-        """)
-        layout.addWidget(info_text)
-        
-        files_count = len(temp_manager.list_temp_files())
-        total_size = temp_manager.get_temp_size()
-        formatted_size = temp_manager.format_size(total_size)
-        
-        self.stats_text = QLabel(f"Файлов: {files_count}\nОбщий размер: {formatted_size}")
-        self.stats_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 16px;
-                background-color: #252525;
-                border-radius: 8px;
-                padding: 15px;
-                border: 1px solid #404040;
-            }
-        """)
-        layout.addWidget(self.stats_text)
-        
-        clear_btn = QPushButton("Очистить временные файлы")
-        clear_btn.clicked.connect(self.clear_temp_files)
-        clear_btn.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(244, 67, 54, 0.1);
-                color: #f44336;
-                border: 1px solid rgba(244, 67, 54, 0.3);
-                padding: 12px 20px;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: rgba(244, 67, 54, 0.2);
-                border: 1px solid rgba(244, 67, 54, 0.5);
-            }
-            QPushButton:pressed {
-                background-color: rgba(244, 67, 54, 0.3);
-                border: 1px solid #f44336;
-            }
-            QPushButton:focus {
-                outline: none;
-                border: 1px solid rgba(244, 67, 54, 0.5);
-            }
-        """)
-        layout.addWidget(clear_btn)
-        
-        self.cleanup_message = QLabel("")
-        self.cleanup_message.setStyleSheet("""
-            QLabel {
-                color: #27ae60;
-                font-size: 14px;
-                background-color: #1e3a2e;
-                border-radius: 8px;
-                padding: 12px 15px;
-                border: 1px solid #27ae60;
-                margin-top: 10px;
-            }
-        """)
-        self.cleanup_message.hide()
-        
-        layout.addWidget(self.cleanup_message)
-        
-        return widget
-    
-    def update_temp_files_stats(self):
-        """Обновить статистику временных файлов без пересоздания всего интерфейса"""
-        try:
-            temp_manager = get_temp_manager()
-            
-            files_count = len(temp_manager.list_temp_files())
-            total_size = temp_manager.get_temp_size()
-            formatted_size = temp_manager.format_size(total_size)
-            
-            if hasattr(self, 'stats_text') and self.stats_text is not None:
-                self.stats_text.setText(f"Файлов: {files_count}\nОбщий размер: {formatted_size}")
-            
-            try:
-                from temp_manager import debug_log
-                debug_log(f"Stats updated: {files_count} files, {formatted_size}")
-            except:
-                pass
-                
-        except Exception as e:
-            try:
-                from temp_manager import debug_log
-                debug_log(f"Error updating stats: {e}")
-            except:
-                pass
-    
-    def clear_temp_files(self):
-        """Очистить временные файлы"""
-        
-        try:
-            temp_manager = get_temp_manager()
-            
-            cleaned_files = temp_manager.manual_cleanup()
-            
-            if not hasattr(self, 'cleanup_message') or self.cleanup_message is None:
-                return  
-            
-            if cleaned_files:
-                if len(cleaned_files) == 1:
-                    message = f"✓ Удален 1 элемент: {cleaned_files[0]}"
-                else:
-                    message = f"✓ Удалено элементов: {len(cleaned_files)}"
-                
-                self.cleanup_message.setStyleSheet("""
-                    QLabel {
-                        color: #27ae60;
-                        font-size: 14px;
-                        background-color: #1e3a2e;
-                        border-radius: 8px;
-                        padding: 12px 15px;
-                        border: 1px solid #27ae60;
-                        margin-top: 10px;
-                    }
-                """)
-            else:
-                message = "Временные файлы не найдены или уже удалены"
-                self.cleanup_message.setStyleSheet("""
-                    QLabel {
-                        color: #3498db;
-                        font-size: 14px;
-                        background-color: #1e2a3a;
-                        border-radius: 8px;
-                        padding: 12px 15px;
-                        border: 1px solid #3498db;
-                        margin-top: 10px;
-                    }
-                """)
-            
-            self.cleanup_message.setText(message)
-            self.cleanup_message.show()
-            
-            self.update_temp_files_stats()
-            
-            QTimer.singleShot(5000, lambda: self.cleanup_message.hide() if hasattr(self, 'cleanup_message') and self.cleanup_message else None)
-            
-        except Exception as e:
-            if hasattr(self, 'cleanup_message') and self.cleanup_message is not None:
-                error_message = f"✗ Ошибка очистки: {str(e)}"
-                self.cleanup_message.setText(error_message)
-                self.cleanup_message.setStyleSheet("""
-                    QLabel {
-                        color: #e74c3c;
-                        font-size: 14px;
-                        background-color: #3a1e1e;
-                        border-radius: 8px;
-                        padding: 12px 15px;
-                        border: 1px solid #e74c3c;
-                        margin-top: 10px;
-                    }
-                """)
-                self.cleanup_message.show()
-                
-                QTimer.singleShot(7000, lambda: self.cleanup_message.hide() if hasattr(self, 'cleanup_message') and self.cleanup_message else None)
-
-    def create_setting_item(self, icon, title, description, control_widget):
-        """Создание элемента настройки"""
-        item = QWidget()
-        item.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border-radius: 15px;
-                border: 1px solid #404040;
-                padding: 5px;
-            }
-            QWidget:hover {
-                border: 1px solid #555555;
-            }
-        """)
-        
-        item_layout = QHBoxLayout(item)
-        item_layout.setContentsMargins(25, 20, 25, 20)
-        item_layout.setSpacing(20)
-        
-        icon_label = QLabel()
-        if icon.endswith('.png'):
-            try:
-                icon_path = get_icon_path(icon)
-                if icon_path:
-                    pixmap = QPixmap(icon_path)
-                    if not pixmap.isNull():
-                        scaled_pixmap = pixmap.scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                        icon_label.setPixmap(scaled_pixmap)
-                        icon_label.setStyleSheet("""
-                            QLabel {
-                                background: transparent;
-                                border: none;
-                                min-width: 40px;
-                                max-width: 40px;
-                            }
-                        """)
-                    else:
-                        icon_label.setText("*")
-                        icon_label.setStyleSheet("""
-                            QLabel {
-                                font-size: 28px;
-                                background: transparent;
-                                border: none;
-                                min-width: 40px;
-                                max-width: 40px;
-                            }
-                        """)
-                else:
-                    icon_label.setText("*")
-                    icon_label.setStyleSheet("""
-                        QLabel {
-                            font-size: 28px;
-                            background: transparent;
-                            border: none;
-                            min-width: 40px;
-                            max-width: 40px;
-                        }
-                    """)
-            except:
-                icon_label.setText("*")
-                icon_label.setStyleSheet("""
-                    QLabel {
-                        font-size: 28px;
-                        background: transparent;
-                        border: none;
-                        min-width: 40px;
-                        max-width: 40px;
-                    }
-                """)
-        else:
-            icon_label.setText(icon)
-            icon_label.setStyleSheet("""
-                QLabel {
-                    font-size: 28px;
-                    background: transparent;
-                    border: none;
-                    min-width: 40px;
-                    max-width: 40px;
-                }
-            """)
-        
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        item_layout.addWidget(icon_label)
-        
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(8)
-        
-        title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 18px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                margin-left: 0px;
-                padding-left: 0px;
-            }
-        """)
-        
-        desc_label = QLabel(description)
-        desc_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 14px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                line-height: 1.4;
-                margin-left: 0px;
-                padding-left: 0px;
-            }
-        """)
-        desc_label.setWordWrap(True)
-        
-        text_layout.addWidget(title_label)
-        text_layout.addWidget(desc_label)
-        
-        item_layout.addLayout(text_layout)
-        item_layout.addStretch()
-        item_layout.addWidget(control_widget)
-        
-        return item
-
-    def create_info_widget(self):
-        """Создание виджета с информацией о программе"""
-        info_widget = QWidget()
-        info_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border-radius: 15px;
-                border: 1px solid #404040;
-                padding: 10px;
-            }
-        """)
-        
-        info_layout = QVBoxLayout(info_widget)
-        info_layout.setContentsMargins(30, 25, 30, 25)
-        info_layout.setSpacing(20)
-        
-        header_layout = QHBoxLayout()
-        
-        logo_label = QLabel()
-        pixmap = self.load_icon_pixmap("infologo.png", (48, 48))
-        if not pixmap.isNull():
-            logo_label.setPixmap(pixmap)
-            logo_label.setStyleSheet("""
-                QLabel {
-                    background: transparent;
-                    border: none;
-                }
-            """)
-        else:
-            logo_label.setText("•")
-            logo_label.setStyleSheet("""
-                QLabel {
-                    font-size: 48px;
-                    background: transparent;
-                    border: none;
-                }
-            """)
-        
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        logo_label.setMinimumSize(48, 48)
-        
-        title_layout = QVBoxLayout()
-        title_layout.setSpacing(5)
-        
-        app_title = QLabel("UTILHELP")
-        app_title.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 28px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                margin-left: -5px;
-            }
-        """)
-        
-        version_label = QLabel(f"Версия {self.get_app_version()}")
-        version_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 16px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-        """)
-        
-        title_layout.addWidget(app_title)
-        title_layout.addWidget(version_label)
-        
-        header_layout.addWidget(logo_label)
-        header_layout.addLayout(title_layout)
-        header_layout.addStretch()
-        
-        info_layout.addLayout(header_layout)
-        
-        description = QLabel("Универсальный помощник для Windows\n\nПрограмма предназначена для быстрого доступа к программам, утилитам и драйверам без лишнего серфинга по интернету. Все необходимое программное обеспечение собрано в одном месте для удобства пользователей.\n\nПервая версия программы была выпущена 9 февраля 2025 года.\n\nВажно: Все ссылки на скачивание ведут на прямое скачивание файлов с официальных сайтов разработчиков или перенаправляют на официальные сайты. UTILHELP не хранит и не распространяет файлы программ и драйверов.\n\nРазработано с заботой о пользователях для экономии времени и упрощения работы с компьютером.")
-        description.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 14px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                line-height: 1.6;
-            }
-        """)
-        description.setWordWrap(True)
-        
-        info_layout.addWidget(description)
-        
-        copyright_label = QLabel('© 2025-2026 UTILHELP. Icons by <a href="https://icons8.com" style="color: #888888; text-decoration: underline;">Icons8</a>')
-        copyright_label.setStyleSheet("""
-            QLabel {
-                color: #888888;
-                font-size: 12px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                margin-top: 10px;
-            }
-        """)
-        copyright_label.setOpenExternalLinks(True)  
-        copyright_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        
-        info_layout.addWidget(copyright_label)
-        
-        return info_widget
-
-    def create_update_data_button(self):
-        """Создание кнопки обновления данных с GitHub"""
-        
-        update_widget = QWidget()
-        update_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border-radius: 12px;
-                border: 1px solid #404040;
-            }
-        """)
-        
-        update_layout = QHBoxLayout(update_widget)
-        update_layout.setContentsMargins(20, 20, 20, 20)
-        update_layout.setSpacing(15)
-        
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(5)
-        
-        title_label = QLabel("Обновление данных")
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 16px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-        """)
-        text_layout.addWidget(title_label)
-        
-        desc_label = QLabel("Автоматическое обновление списков программ и драйверов с GitHub")
-        desc_label.setWordWrap(True)
-        desc_label.setStyleSheet("""
-            QLabel {
-                color: #aaaaaa;
-                font-size: 12px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                line-height: 1.4;
-            }
-        """)
-        text_layout.addWidget(desc_label)
-        
-        update_layout.addLayout(text_layout)
-        update_layout.addStretch()
-        
-        update_btn = QPushButton("Проверить")
-        update_btn.setFixedSize(120, 36)
-        update_btn.clicked.connect(self.force_data_update)
-        
-        from resource_path import get_icon_path
-        from PyQt6.QtGui import QIcon
-        from PyQt6.QtCore import QSize
-        
-        update_icon_path = get_icon_path("update.png")
-        if update_icon_path:
-            update_icon = QIcon(update_icon_path)
-            update_btn.setIcon(update_icon)
-            update_btn.setIconSize(QSize(16, 16))
-        
-        update_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #666666, stop:1 #555555);
-                color: white;
-                border: 1px solid #777777;
-                border-radius: 8px;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #777777, stop:1 #666666);
-                border: 1px solid #888888;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #555555, stop:1 #444444);
-            }
-            QPushButton:disabled {
-                background: #3a3a3a;
-                color: #666666;
-                border: 1px solid #444444;
-            }
-        """)
-        
-        update_layout.addWidget(update_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-        
-        bottom_layout = QVBoxLayout()
-        bottom_layout.setContentsMargins(0, 12, 0, 0)
-        
-        self.last_update_label = QLabel()
-        self.update_last_update_time()
-        self.last_update_label.setStyleSheet("""
-            QLabel {
-                color: #888888;
-                font-size: 11px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                padding-top: 5px;
-                margin-left: -2px;
-            }
-        """)
-        bottom_layout.addWidget(self.last_update_label)
-        
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-        main_layout.addLayout(update_layout)
-        main_layout.addLayout(bottom_layout)
-        
-        update_widget.setLayout(main_layout)
-        
-        return update_widget
-    
-    def create_program_update_button(self):
-        """Создание кнопки проверки обновлений программы"""
-        
-        update_widget = QWidget()
-        update_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border-radius: 12px;
-                border: 1px solid #404040;
-            }
-        """)
-        
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-        
-        update_layout = QHBoxLayout()
-        update_layout.setContentsMargins(20, 15, 20, 10)  
-        update_layout.setSpacing(15)
-        
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(5)
-        
-        title_label = QLabel("Обновление программы")
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 16px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-        """)
-        text_layout.addWidget(title_label)
-        
-        desc_label = QLabel("Проверка новых версий UTILHELP на GitHub")
-        desc_label.setWordWrap(True)
-        desc_label.setStyleSheet("""
-            QLabel {
-                color: #aaaaaa;
-                font-size: 12px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                line-height: 1.4;
-            }
-        """)
-        text_layout.addWidget(desc_label)
-        
-        update_layout.addLayout(text_layout)
-        update_layout.addStretch()
-        
-        button_container = QWidget()
-        button_container.setFixedHeight(60)  
-        button_container_layout = QVBoxLayout(button_container)
-        button_container_layout.setContentsMargins(0, 0, 0, 0)
-        button_container_layout.setSpacing(0)
-        
-        check_update_btn = QPushButton("Проверить")
-        check_update_btn.setFixedSize(120, 36)
-        check_update_btn.clicked.connect(self.check_program_updates)
-        
-        from resource_path import get_icon_path
-        from PyQt6.QtGui import QIcon
-        from PyQt6.QtCore import QSize
-        
-        update_icon_path = get_icon_path("update.png")
-        if update_icon_path:
-            update_icon = QIcon(update_icon_path)
-            check_update_btn.setIcon(update_icon)
-            check_update_btn.setIconSize(QSize(16, 16))
-        
-        check_update_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #4CAF50, stop:1 #45a049);
-                color: white;
-                border: 1px solid #4CAF50;
-                border-radius: 8px;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #5CBF60, stop:1 #4CAF50);
-                border: 1px solid #5CBF60;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #45a049, stop:1 #3d8b40);
-            }
-            QPushButton:disabled {
-                background: #3a3a3a;
-                color: #666666;
-                border: 1px solid #444444;
-            }
-        """)
-        
-        button_container_layout.addStretch()
-        button_container_layout.addWidget(check_update_btn, 0, Qt.AlignmentFlag.AlignCenter)
-        button_container_layout.addStretch()
-        
-        update_layout.addWidget(button_container)
-        
-        main_layout.addLayout(update_layout)
-        
-        separator = QWidget()
-        separator.setFixedHeight(1)
-        separator.setStyleSheet("background-color: #404040; margin: 0px 20px;")
-        main_layout.addWidget(separator)
-        
-        info_title = QLabel("Информация об обновлениях")
-        info_title.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 14px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                margin: 10px 20px 5px 20px;
-                background: transparent;
-                border: none;
-            }
-        """)
-        main_layout.addWidget(info_title)
-        
-        info_text = QLabel("""• Автоматическая проверка обновлений при запуске программы
-• Уведомления о доступных новых версиях
-• Безопасная загрузка обновлений с GitHub
-• Автоматическая установка и обновление программы
-• Сохранение пользовательских настроек при обновлении""")
-        info_text.setWordWrap(True)
-        info_text.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 12px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                line-height: 1.5;
-                margin: 5px 20px 5px 20px;
-                background: transparent;
-                border: none;
-            }
-        """)
-        main_layout.addWidget(info_text)
-        
-        release_info = QLabel("Все обновления загружаются с официального репозитория GitHub и проходят проверку безопасности.")
-        release_info.setWordWrap(True)
-        release_info.setStyleSheet("""
-            QLabel {
-                color: #888888;
-                font-size: 11px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                font-style: italic;
-                margin: 5px 20px 15px 20px;
-                background: transparent;
-                border: none;
-            }
-        """)
-        main_layout.addWidget(release_info)
-        
-        update_widget.setLayout(main_layout)
-        
-        return update_widget
-    
-    def create_simple_update_widget(self):
-        """Создание простого виджета обновлений"""
-        update_widget = QWidget()
-        update_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border-radius: 15px;
-                border: 1px solid #404040;
-                padding: 10px;
-            }
-        """)
-        
-        layout = QVBoxLayout(update_widget)
-        layout.setContentsMargins(25, 20, 25, 20)
-        layout.setSpacing(15)
-        
-        top_layout = QHBoxLayout()
-        top_layout.setSpacing(20)
-        
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(5)
-        
-        title_label = QLabel("Обновление программы")
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 18px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                margin-left: -2px;
-            }
-        """)
-        text_layout.addWidget(title_label)
-        
-        desc_label = QLabel("Проверка новых версий UTILHELP на GitHub")
-        desc_label.setStyleSheet("""
-            QLabel {
-                color: #aaaaaa;
-                font-size: 13px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                margin-left: 1px;
-            }
-        """)
-        text_layout.addWidget(desc_label)
-        
-        top_layout.addLayout(text_layout)
-        top_layout.addStretch()
-        
-        button_container = QWidget()
-        button_container.setFixedHeight(60)
-        button_container.setStyleSheet("""
-            QWidget {
-                background: transparent;
-                border: none;
-            }
-        """)
-        button_container_layout = QVBoxLayout(button_container)
-        button_container_layout.setContentsMargins(0, 0, 0, 0)
-        
-        check_button = QPushButton("Проверить")
-        check_button.setFixedSize(120, 36)
-        check_button.clicked.connect(self.check_program_updates)
-        
-        update_icon_path = get_icon_path("update.png")
-        if update_icon_path:
-            update_icon = QIcon(update_icon_path)
-            check_button.setIcon(update_icon)
-            check_button.setIconSize(QSize(16, 16))
-        
-        check_button.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #666666, stop:1 #555555);
-                color: white;
-                border: 1px solid #666666;
-                border-radius: 8px;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #777777, stop:1 #666666);
-                border: 1px solid #777777;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #555555, stop:1 #444444);
-            }
-        """)
-        
-        button_container_layout.addStretch()
-        button_container_layout.addWidget(check_button, 0, Qt.AlignmentFlag.AlignCenter)
-        button_container_layout.addStretch()
-        
-        top_layout.addWidget(button_container)
-        layout.addLayout(top_layout)
-        
-        separator = QWidget()
-        separator.setFixedHeight(1)
-        separator.setStyleSheet("background-color: #404040;")
-        layout.addWidget(separator)
-        
-        info_title = QLabel("Информация об обновлениях")
-        info_title.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 14px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-        """)
-        layout.addWidget(info_title)
-        
-        info_text = QLabel("""• Автоматическая проверка обновлений при запуске программы
-• Уведомления о доступных новых версиях
-• Безопасная загрузка обновлений с GitHub
-• Автоматическая установка и обновление программы
-• Сохранение пользовательских настроек при обновлении""")
-        info_text.setWordWrap(True)
-        info_text.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 12px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                line-height: 1.5;
-                background: transparent;
-                border: none;
-            }
-        """)
-        layout.addWidget(info_text)
-        
-        security_info = QLabel("Все обновления загружаются с официального репозитория GitHub и проходят проверку безопасности.")
-        security_info.setWordWrap(True)
-        security_info.setStyleSheet("""
-            QLabel {
-                color: #888888;
-                font-size: 11px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                font-style: italic;
-                background: transparent;
-                border: none;
-            }
-        """)
-        layout.addWidget(security_info)
-        
-        return update_widget
-    
-    def check_program_updates(self):
-        """Проверить обновления программы"""
-        try:
-            from update_checker import get_update_manager
-            
-            update_manager = get_update_manager(self.parent_window if hasattr(self, 'parent_window') else self)
-            
-            update_manager.check_for_updates_interactive()
-            
-        except Exception as e:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(
-                self.parent_window if hasattr(self, 'parent_window') else self,
-                "Ошибка",
-                f"Не удалось проверить обновления:\n{str(e)}"
-            )
-    
-    def update_last_update_time(self):
-        """Обновляет текст с временем последнего обновления"""
-        
-        cache_time_file = os.path.join("data", "cache_time.txt")
-        
-        if os.path.exists(cache_time_file):
-            try:
-                with open(cache_time_file, 'r') as f:
-                    cache_time = datetime.fromisoformat(f.read().strip())
-                    time_str = cache_time.strftime("%d.%m.%Y %H:%M")
-                    self.last_update_label.setText(f"Последнее обновление: {time_str}")
-            except:
-                self.last_update_label.setText("Обновления еще не проверялись")
-        else:
-            self.last_update_label.setText("Обновления еще не проверялись")
-    
-    def force_data_update(self):
-        """Принудительное обновление данных"""
-        
-        try:
-            sender = self.sender()
-            if sender:
-                sender.setEnabled(False)
-                sender.setText("Обновление...")
-                sender.setIcon(QIcon())
-            
-            if hasattr(self, 'last_update_label'):
-                self.last_update_label.setText("Проверка обновлений...")
-            
-            manager = get_json_manager()
-            
-            main_window = self.parent_window if hasattr(self, 'parent_window') else self.parent()
-            
-            def on_complete(data):
-                try:
-                    if hasattr(main_window, 'update_last_update_time'):
-                        main_window.update_last_update_time()
-                    
-                    if hasattr(main_window, 'programs_tab'):
-                        main_window.programs_tab.set_data(data.get('programs', []))
-                    if hasattr(main_window, 'drivers_tab'):
-                        main_window.drivers_tab.set_data(data.get('drivers', []))
-                    if hasattr(main_window, 'news_tab'):
-                        main_window.news_tab.set_data(data.get('news', []))
-                    
-                    if sender:
-                        sender.setText("Успех")
-                        sender.setIcon(QIcon()) 
-                        sender.setStyleSheet("""
-                            QPushButton {
-                                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                    stop:0 #27ae60, stop:1 #229954);
-                                color: white;
-                                border: 1px solid #2ecc71;
-                                border-radius: 8px;
-                                font-size: 12px;
-                                font-weight: bold;
-                            }
-                            QPushButton:hover {
-                                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                    stop:0 #2ecc71, stop:1 #27ae60);
-                                border: 1px solid #2ecc71;
-                            }
-                        """)
-                        
-                        QTimer.singleShot(3000, lambda: self.reset_update_button(sender))
-                    
-                except Exception as e:
-                    print(f"Ошибка в on_complete: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    from PyQt6.QtWidgets import QMessageBox
-                    msg_box = QMessageBox(main_window)
-                    msg_box.setWindowTitle("Ошибка")
-                    msg_box.setText(f"Ошибка обновления интерфейса:\n{e}")
-                    msg_box.setIcon(QMessageBox.Icon.Critical)
-                    msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-                    msg_box.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
-                    msg_box.exec()
-            
-            def on_failed(error):
-                try:
-                    if sender:
-                        sender.setEnabled(True)
-                        sender.setText("Проверить")
-                        from resource_path import get_icon_path
-                        from PyQt6.QtGui import QIcon
-                        from PyQt6.QtCore import QSize
-                        
-                        update_icon_path = get_icon_path("update.png")
-                        if update_icon_path:
-                            update_icon = QIcon(update_icon_path)
-                            sender.setIcon(update_icon)
-                            sender.setIconSize(QSize(16, 16))
-                        
-                        sender.setStyleSheet("""
-                            QPushButton {
-                                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                    stop:0 #666666, stop:1 #555555);
-                                color: white;
-                                border: 1px solid #777777;
-                                border-radius: 8px;
-                                font-size: 12px;
-                                font-weight: bold;
-                            }
-                            QPushButton:hover {
-                                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                    stop:0 #777777, stop:1 #666666);
-                                border: 1px solid #888888;
-                            }
-                            QPushButton:pressed {
-                                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                    stop:0 #555555, stop:1 #444444);
-                            }
-                            QPushButton:disabled {
-                                background: #3a3a3a;
-                                color: #666666;
-                                border: 1px solid #444444;
-                            }
-                        """)
-                    
-                    if hasattr(self, 'last_update_label'):
-                        self.last_update_label.setText("Ошибка при проверке обновлений")
-                    
-                    from PyQt6.QtWidgets import QMessageBox
-                    msg_box = QMessageBox(main_window)
-                    msg_box.setWindowTitle("Ошибка")
-                    msg_box.setText(f"Не удалось обновить данные:\n{error}")
-                    msg_box.setIcon(QMessageBox.Icon.Warning)
-                    msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-                    msg_box.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
-                    msg_box.exec()
-                    
-                except Exception as e:
-                    print(f"Ошибка в on_failed: {e}")
-                    import traceback
-                    traceback.print_exc()
-            
-            manager.load_data(on_complete=on_complete, on_failed=on_failed)
-            
-        except Exception as e:
-            print(f"Ошибка в force_data_update: {e}")
-            import traceback
-            traceback.print_exc()
-            from PyQt6.QtWidgets import QMessageBox
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle("Критическая ошибка")
-            msg_box.setText(f"Ошибка обновления данных:\n{e}")
-            msg_box.setIcon(QMessageBox.Icon.Critical)
-            msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-            msg_box.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
-            msg_box.exec()
-    
-    def reset_update_button(self, button):
-        """Возвращает кнопку обновления в исходное состояние"""
-        if button:
-            button.setEnabled(True)
-            button.setText("Проверить")
-            
-            from resource_path import get_icon_path
-            from PyQt6.QtGui import QIcon
-            from PyQt6.QtCore import QSize
-            
-            update_icon_path = get_icon_path("update.png")
-            if update_icon_path:
-                update_icon = QIcon(update_icon_path)
-                button.setIcon(update_icon)
-                button.setIconSize(QSize(16, 16))
-            
-            button.setStyleSheet("""
-                QPushButton {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #666666, stop:1 #555555);
-                    color: white;
-                    border: 1px solid #777777;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #777777, stop:1 #666666);
-                    border: 1px solid #888888;
-                }
-                QPushButton:pressed {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #555555, stop:1 #444444);
-                }
-                QPushButton:disabled {
-                    background: #3a3a3a;
-                    color: #666666;
-                    border: 1px solid #444444;
-                }
-            """)
-    
-    def create_contacts_widget(self):
-        """Создание виджета с контактной информацией"""
-        contacts_widget = QWidget()
-        contacts_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border-radius: 15px;
-                border: 1px solid #404040;
-                padding: 10px;
-            }
-        """)
-        
-        contacts_layout = QVBoxLayout(contacts_widget)
-        contacts_layout.setContentsMargins(20, 15, 20, 15)
-        contacts_layout.setSpacing(10)
-        
-        header_label = QLabel("Связаться с разработчиком")
-        header_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 18px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                margin-bottom: 5px;
-            }
-        """)
-        contacts_layout.addWidget(header_label)
-        
-        github_layout = QHBoxLayout()
-        github_layout.setSpacing(8)
-        github_icon = QLabel()
-        pixmap = self.load_icon_pixmap("github.png", (16, 16))
-        if not pixmap.isNull():
-            github_icon.setPixmap(pixmap)
-        else:
-            github_icon.setText("•")
-        github_icon.setStyleSheet("background: transparent; border: none; margin-top: 1px;")
-        github_label = QLabel("GitHub:")
-        github_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 13px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                min-width: 80px;
-            }
-        """)
-        github_link = QLabel('<a href="https://github.com/al1ster13/UTILHELP" style="color: #3498db; text-decoration: none;">https://github.com/al1ster13/UTILHELP</a>')
-        github_link.setStyleSheet("""
-            QLabel {
-                color: #3498db;
-                font-size: 13px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-        """)
-        github_link.setOpenExternalLinks(True)
-        github_layout.addWidget(github_icon)
-        github_layout.addWidget(github_label)
-        github_layout.addWidget(github_link)
-        github_layout.addStretch()
-        contacts_layout.addLayout(github_layout)
-        
-        email_layout = QHBoxLayout()
-        email_layout.setSpacing(8)
-        email_icon = QLabel()
-        pixmap = self.load_icon_pixmap("email.png", (16, 16))
-        if not pixmap.isNull():
-            email_icon.setPixmap(pixmap)
-        else:
-            email_icon.setText("•")
-        email_icon.setStyleSheet("background: transparent; border: none; margin-top: 1px;")
-        email_label = QLabel("Email:")
-        email_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 13px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                min-width: 80px;
-            }
-        """)
-        email_link = QLabel('utilhelp@yandex.com')
-        email_link.setStyleSheet("""
-            QLabel {
-                color: #3498db;
-                font-size: 13px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-            QLabel:hover {
-                color: #5dade2;
-                text-decoration: underline;
-            }
-        """)
-        email_link.mousePressEvent = lambda event: self.copy_email_to_clipboard()
-        
-        self.copied_label = QLabel("Скопировано!")
-        self.copied_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                font-size: 12px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                margin-left: 10px;
-            }
-        """)
-        self.copied_label.setVisible(False)
-        
-        self.copied_opacity_effect = QGraphicsOpacityEffect()
-        self.copied_opacity_effect.setOpacity(0.0)
-        self.copied_label.setGraphicsEffect(self.copied_opacity_effect)
-        
-        self.copied_fade_animation = QPropertyAnimation(self.copied_opacity_effect, b"opacity")
-        self.copied_fade_animation.setDuration(300)
-        self.copied_fade_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        
-        self.copy_timer = QTimer()
-        self.copy_timer.timeout.connect(self.hide_copied_label)
-        self.copy_timer.setSingleShot(True)
-        email_layout.addWidget(email_icon)
-        email_layout.addWidget(email_label)
-        email_layout.addWidget(email_link)
-        email_layout.addWidget(self.copied_label)
-        email_layout.addStretch()
-        contacts_layout.addLayout(email_layout)
-        
-        telegram_layout = QHBoxLayout()
-        telegram_layout.setSpacing(8)
-        telegram_icon = QLabel()
-        pixmap = self.load_icon_pixmap("telegram.png", (16, 16))
-        if not pixmap.isNull():
-            telegram_icon.setPixmap(pixmap)
-        else:
-            telegram_icon.setText("•")
-        telegram_icon.setStyleSheet("background: transparent; border: none; margin-top: 1px;")
-        telegram_label = QLabel("Telegram:")
-        telegram_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 13px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                min-width: 80px;
-            }
-        """)
-        telegram_link = QLabel('<a href="https://t.me/UTILHELP" style="color: #3498db; text-decoration: none;">https://t.me/UTILHELP</a>')
-        telegram_link.setStyleSheet("""
-            QLabel {
-                color: #3498db;
-                font-size: 13px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-        """)
-        telegram_link.setOpenExternalLinks(True)
-        telegram_layout.addWidget(telegram_icon)
-        telegram_layout.addWidget(telegram_label)
-        telegram_layout.addWidget(telegram_link)
-        telegram_layout.addStretch()
-        contacts_layout.addLayout(telegram_layout)
-        
-        info_text = QLabel("""Мы всегда рады обратной связи от пользователей!
-
-• Сообщения об ошибках и предложения по улучшению
-• Идеи для новых функций и возможностей  
-• Вопросы по использованию программы
-• Предложения о сотрудничестве
-
-Подписывайтесь на наш Telegram канал для получения новостей и обновлений. Ваше мнение помогает делать UTILHELP лучше!
-
-Обычно мы отвечаем в течение 24 часов.""")
-        info_text.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 12px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                line-height: 1.4;
-            }
-        """)
-        info_text.setWordWrap(True)
-        contacts_layout.addWidget(info_text)
-        
-        return contacts_widget
-
-    def get_app_version(self):
-        """Получение версии приложения"""
-        try:
-            with open('version.txt', 'r', encoding='utf-8') as f:
-                return f'v{f.read().strip()}'
-        except:
-            return 'v1.0'
-
-    def set_parent_window(self, parent_window):
-        """Установка ссылки на главное окно"""
-        self.parent_window = parent_window
-
-    def show_theme_development_message(self, checked):
-        """Показать сообщение о том, что функция в стадии разработки"""
-        if (self.theme_development_dialog is None or 
-            not self.theme_development_dialog.isVisible()):
-            from custom_dialogs import CustomMessageDialog
-            if self.theme_development_dialog is not None:
-                self.theme_development_dialog.deleteLater()
-            
-            self.theme_development_dialog = CustomMessageDialog(
-                "В стадии разработки",
-                "Функция переключения тем находится в стадии разработки и будет доступна в следующих обновлениях.",
-                "logo64x64.png",
-                self.parent_window
-            )
-        
-        self.theme_development_dialog.exec()
-
-    def handle_theme_toggle(self, checked):
-        """Обработка переключения темы"""
-        self.show_theme_development_message(checked)
-
-    def save_snow_state(self, enabled):
-        """Сохранение состояния снегопада"""
-        self.snow_enabled = enabled
-
-    def copy_email_to_clipboard(self):
-        """Копирование email в буфер обмена с уведомлением"""
-        
-        clipboard = QApplication.clipboard()
-        clipboard.setText("utilhelp@yandex.com")
-        
-        if hasattr(self, 'copied_fade_animation'):
-            self.copied_fade_animation.stop()
-        if hasattr(self, 'copy_timer'):
-            self.copy_timer.stop()
-        
-        self.copied_label.setVisible(True)
-        self.copied_fade_animation.setStartValue(0.0)
-        self.copied_fade_animation.setEndValue(1.0)
-        
-        try:
-            self.copied_fade_animation.finished.disconnect()
-        except:
-            pass
-        
-        self.copied_fade_animation.start()
-        
-        self.copy_timer.start(5000)
-
-    def hide_copied_label(self):
-        """Скрытие метки 'Скопировано!' с анимацией исчезновения"""
-        if not self.copied_label.isVisible():
-            return
-            
-        if hasattr(self, 'copied_fade_animation'):
-            self.copied_fade_animation.stop()
-        
-        try:
-            self.copied_fade_animation.finished.disconnect()
-        except:
-            pass
-        
-        self.copied_fade_animation.finished.connect(lambda: self.copied_label.setVisible(False))
-        
-        self.copied_fade_animation.setStartValue(1.0)
-        self.copied_fade_animation.setEndValue(0.0)
-        self.copied_fade_animation.start()
-
-
-class ToggleSwitch(QWidget):
-    """Переключатель"""
-    toggled = pyqtSignal(bool)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setFixedSize(40, 20)
-        self.checked = False  
-        self._position = 4    
-        
-        self.animation = QPropertyAnimation(self, b"position")
-        self.animation.setDuration(200)
-        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-    def setChecked(self, checked):
-        if self.checked != checked:
-            self.checked = checked
-            self._position = 24 if self.checked else 4
-            self.update()  
-    def isChecked(self):
-        return self.checked
-
-    def animate_toggle(self):
-        if self.animation.state() == QPropertyAnimation.State.Running:
-            self.animation.stop()
-        
-        end_pos = 24 if self.checked else 4
-        self.animation.setStartValue(self._position)
-        self.animation.setEndValue(end_pos)
-        self.animation.start()
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.checked = not self.checked
-            self.animate_toggle()
-            self.toggled.emit(self.checked)
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        bg_color = QColor(102, 102, 102) if self.checked else QColor(64, 64, 64)
-        painter.setBrush(QBrush(bg_color))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawRoundedRect(0, 0, 40, 20, 10, 10)
-        
-        slider_color = QColor(255, 255, 255)
-        painter.setBrush(QBrush(slider_color))
-        painter.setPen(Qt.PenStyle.NoPen)
-        shadow_color = QColor(0, 0, 0, 30)
-        painter.setBrush(QBrush(shadow_color))
-        painter.drawEllipse(int(self._position) + 1, 5, 12, 12)
-        painter.setBrush(QBrush(slider_color))
-        painter.drawEllipse(int(self._position), 4, 12, 12)
-
-    @pyqtProperty(float)
-    def position(self):
-        return self._position
-
-    @position.setter
-    def position(self, value):
-        self._position = value
-        self.update()
-
-
-class DisabledToggleSwitch(ToggleSwitch):
-    """Переключатель который не меняет состояние при клике - для функций в разработке"""
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.toggled.emit(self.checked)  
-
-class SnowWidget(QWidget):
-    """Виджет снегопада"""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.setStyleSheet("background: transparent;")
-        
-        self.snowflakes = []
-        self.init_snowflakes()
-        
-        self.snow_timer = QTimer()
-        self.snow_timer.timeout.connect(self.update_snowflakes)
-        self.snow_timer.start(50)  # 20 FPS
-
-    def init_snowflakes(self):
-        """Инициализация снежинок"""
-        for _ in range(30):  
-            x = random.randint(0, max(1280, self.parent().width() if self.parent() else 1280))
-            y = random.randint(-720, 0)
-            size = random.randint(3, 8)
-            speed = random.uniform(1, 2.5)
-            self.snowflakes.append(Snowflake(x, y, size, speed))
-
-    def reinit_snowflakes_for_size(self, new_width, new_height):
-        """Пересоздать снежинки для нового размера окна"""
-        target_count = max(30, min(80, (new_width * new_height) // 25000))
-        
-        while len(self.snowflakes) < target_count:
-            x = random.randint(0, new_width)
-            y = random.randint(-new_height, new_height)
-            size = random.randint(3, 8)
-            speed = random.uniform(1, 2.5)
-            self.snowflakes.append(Snowflake(x, y, size, speed))
-        
-        while len(self.snowflakes) > target_count:
-            self.snowflakes.pop()
-        
-        for snowflake in self.snowflakes:
-            if snowflake.x > new_width:
-                snowflake.x = random.randint(0, new_width)
-            if snowflake.y > new_height:
-                snowflake.y = random.randint(-new_height, 0)
-
-    def update_snowflakes(self):
-        """Обновление позиций снежинок"""
-        window_width = self.parent().width() if self.parent() else self.width()
-        window_height = self.parent().height() if self.parent() else self.height()
-        
-        for snowflake in self.snowflakes:
-            snowflake.y += snowflake.speed
-            snowflake.x += snowflake.drift
-            
-            if snowflake.y > window_height:
-                snowflake.y = random.randint(-50, -10)
-                snowflake.x = random.randint(0, window_width)
-                snowflake.size = random.randint(3, 8)
-                snowflake.speed = random.uniform(1, 2.5)
-                snowflake.drift = random.uniform(-0.8, 0.8)
-                snowflake.opacity = random.uniform(0.4, 0.9)
-            
-            if snowflake.x < -20:
-                snowflake.x = window_width + 10
-            elif snowflake.x > window_width + 20:
-                snowflake.x = -10
-        
-        self.update()
-
-    def paintEvent(self, event):
-        """Отрисовка снежинок"""
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        for snowflake in self.snowflakes:
-            color = QColor(255, 255, 255, int(snowflake.opacity * 128))
-            painter.setBrush(QBrush(color))
-            painter.setPen(QPen(color, 1))
-            
-            x, y, size = int(snowflake.x), int(snowflake.y), snowflake.size
-            
-            painter.drawEllipse(x - size//2, y - size//2, size, size)
-            
-            painter.setPen(QPen(color, 2))
-            painter.drawLine(x - size, y, x + size, y)  
-            painter.drawLine(x, y - size, x, y + size)  
-            painter.drawLine(x - size//2, y - size//2, x + size//2, y + size//2)  
-            painter.drawLine(x - size//2, y + size//2, x + size//2, y - size//2)  
-
-
-class Snowflake:
-    """Класс снежинки"""
-    def __init__(self, x, y, size, speed):
-        self.x = x
-        self.y = y
-        self.size = size
-        self.speed = speed
-        self.drift = random.uniform(-0.5, 0.5)  
-        self.opacity = random.uniform(0.3, 0.8)  
+from logger import log_info, log_error, log_warning, log_debug
+from ui.settings.toggle_switch import ToggleSwitch, DisabledToggleSwitch
+from ui.effects.snow_widget import SnowWidget
+from ui.settings.settings_tab_full import SettingsTab
+from localization import t
 
 class MainWindow(QMainWindow):
     """Главное окно программы"""
@@ -2031,7 +52,6 @@ class MainWindow(QMainWindow):
         self.notification_manager = get_notification_manager(self)
         self.notification_manager.show_tray_icon()
         
-        # Инициализация менеджера настроек и миграция из старой базы
         from settings_manager import settings_manager
         settings_manager.migrate_from_db()
         
@@ -2232,7 +252,6 @@ class MainWindow(QMainWindow):
         close_button.setFixedSize(30, 25)  
         close_button.clicked.connect(self.close)
         
-        # Загружаем иконку закрытия
         close_icon_path = get_icon_path("closemenu.png")
         if close_icon_path:
             close_button.setIcon(QIcon(close_icon_path))
@@ -2317,22 +336,22 @@ class MainWindow(QMainWindow):
         """)
         
         self.news_tab = NewsTab()
-        self.tab_widget.addTab(self.news_tab, "НОВОСТИ")
+        self.tab_widget.addTab(self.news_tab, t("tabs.news"))
         
         self.programs_tab = ProgramsTab()
-        self.tab_widget.addTab(self.programs_tab, "ПРОГРАММЫ")
+        self.tab_widget.addTab(self.programs_tab, t("tabs.programs"))
         
         self.drivers_tab = DriversTab()
-        self.tab_widget.addTab(self.drivers_tab, "ДРАЙВЕРЫ")
+        self.tab_widget.addTab(self.drivers_tab, t("tabs.drivers"))
         
         self.data_loaded = False
         self.loading_widget = None
         
         self.downloads_tab = DownloadsTab()
-        self.tab_widget.addTab(self.downloads_tab, "БИБЛИОТЕКА")
+        self.tab_widget.addTab(self.downloads_tab, t("tabs.library"))
         
         self.settings_tab = SettingsTab(self)
-        self.settings_tab_index = self.tab_widget.addTab(self.settings_tab, "НАСТРОЙКИ")
+        self.settings_tab_index = self.tab_widget.addTab(self.settings_tab, t("tabs.settings"))
         self.tab_widget.tabBar().setTabVisible(self.settings_tab_index, False)
         
 
@@ -2355,15 +374,15 @@ class MainWindow(QMainWindow):
         status_layout.setContentsMargins(15, 0, 8, 0)
         
         version_text = self.get_app_version()
-        version_label = QLabel(f"Версия UTILHELP: {version_text}")
-        version_label.setStyleSheet("""
+        self.version_label = QLabel(t("app.version", version=version_text))
+        self.version_label.setStyleSheet("""
             QLabel {
                 color: #cccccc;
                 font-size: 10px;
                 font-family: 'Segoe UI', Arial, sans-serif;
             }
         """)
-        status_layout.addWidget(version_label)
+        status_layout.addWidget(self.version_label)
         status_layout.addStretch()
         
         self.downloads_button = QPushButton()
@@ -2372,9 +391,9 @@ class MainWindow(QMainWindow):
             icon = QIcon(pixmap)
             self.downloads_button.setIcon(icon)
             self.downloads_button.setIconSize(QSize(16, 16))
-            self.downloads_button.setText(" Загрузки")  
+            self.downloads_button.setText(f" {t('main_window.downloads_button')}")  
         else:
-            self.downloads_button.setText("↓ Загрузки")
+            self.downloads_button.setText(f"↓ {t('main_window.downloads_button')}")
         
         self.downloads_button.setFixedHeight(20)  
         self.downloads_button.clicked.connect(self.toggle_downloads_panel)
@@ -2428,6 +447,8 @@ class MainWindow(QMainWindow):
         
         QApplication.instance().installEventFilter(self)
         
+        self.setup_shortcuts()
+        
         QTimer.singleShot(3000, self.check_for_updates_on_startup)
     
     def check_for_updates_on_startup(self):
@@ -2441,8 +462,8 @@ class MainWindow(QMainWindow):
             
             if 'error' in update_info:
                 try:
-                    from temp_manager import debug_log
-                    debug_log(f"Auto-update check error: {update_info['error']}")
+                    from logger import log_error
+                    log_error(f"Auto-update check error: {update_info['error']}")
                 except:
                     pass
                 return
@@ -2452,10 +473,69 @@ class MainWindow(QMainWindow):
                 
         except Exception as e:
             try:
-                from temp_manager import debug_log
-                debug_log(f"Auto-update check failed: {e}")
+                from logger import log_error
+                log_error(f"Auto-update check failed: {e}")
             except:
                 pass
+
+    def setup_shortcuts(self):
+        """Настройка горячих клавиш"""
+        shortcut_downloads = QShortcut(QKeySequence("Ctrl+D"), self)
+        shortcut_downloads.activated.connect(self.toggle_downloads_panel)
+        
+        shortcut_search = QShortcut(QKeySequence("Ctrl+F"), self)
+        shortcut_search.activated.connect(self.focus_search)
+        
+        shortcut_refresh = QShortcut(QKeySequence("Ctrl+R"), self)
+        shortcut_refresh.activated.connect(self.refresh_current_tab)
+        
+        shortcut_scan = QShortcut(QKeySequence("Ctrl+S"), self)
+        shortcut_scan.activated.connect(self.scan_system)
+        
+        shortcut_f5 = QShortcut(QKeySequence("F5"), self)
+        shortcut_f5.activated.connect(self.refresh_current_tab)
+        
+        log_info("Горячие клавиши настроены")
+    
+    def focus_search(self):
+        """Установить фокус на поле поиска в текущей вкладке"""
+        current_widget = self.tab_widget.currentWidget()
+        
+        if hasattr(current_widget, 'search_input'):
+            current_widget.search_input.setFocus()
+            current_widget.search_input.selectAll()
+            log_info("Фокус установлен на поиск")
+    
+    def refresh_current_tab(self):
+        """Обновить данные в текущей вкладке"""
+        current_widget = self.tab_widget.currentWidget()
+        current_index = self.tab_widget.currentIndex()
+        
+        if current_index == 0 and hasattr(current_widget, 'load_news_from_data'):
+            current_widget.load_news_from_data()
+            log_info("Новости обновлены")
+        
+        elif current_index == 1 and hasattr(current_widget, 'display_programs'):
+            current_widget.display_programs()
+            log_info("Программы обновлены")
+        
+        elif current_index == 2 and hasattr(current_widget, 'display_drivers'):
+            current_widget.display_drivers()
+            log_info("Драйверы обновлены")
+        
+        elif current_index == 3 and hasattr(current_widget, 'load_downloads'):
+            current_widget.load_downloads()
+            log_info("Библиотека загрузок обновлена")
+    
+    def scan_system(self):
+        """Запустить сканирование системы"""
+        current_widget = self.tab_widget.currentWidget()
+        
+        if hasattr(current_widget, 'start_system_scan'):
+            current_widget.start_system_scan()
+            log_info("Запущено сканирование системы")
+        else:
+            log_warning("Сканирование недоступно на текущей вкладке")
 
     def load_icon_pixmap(self, icon_name, size=None):
         """Загрузить иконку с правильным путем для exe"""
@@ -2725,7 +805,7 @@ class MainWindow(QMainWindow):
                 pass
         
         self.show_opacity_animation = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.show_opacity_animation.setDuration(400)
+        self.show_opacity_animation.setDuration(200)  # Ускорена анимация с 400 до 200 мс
         self.show_opacity_animation.setStartValue(0.0)
         self.show_opacity_animation.setEndValue(1.0)
         self.show_opacity_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
@@ -2753,7 +833,7 @@ class MainWindow(QMainWindow):
                 pass
         
         self.hide_opacity_animation = QPropertyAnimation(opacity_effect, b"opacity")
-        self.hide_opacity_animation.setDuration(400)
+        self.hide_opacity_animation.setDuration(200)  # Ускорена анимация с 400 до 200 мс
         self.hide_opacity_animation.setStartValue(1.0)
         self.hide_opacity_animation.setEndValue(0.0)
         self.hide_opacity_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
@@ -2777,7 +857,7 @@ class MainWindow(QMainWindow):
         
         header_layout = QHBoxLayout()
         
-        title_label = QLabel("Загрузки")
+        title_label = QLabel(t("main_window.downloads_button"))
         title_label.setStyleSheet("""
             QLabel {
                 color: #ffffff;
@@ -3098,7 +1178,7 @@ class MainWindow(QMainWindow):
             with open('version.txt', 'r', encoding='utf-8') as f:
                 return f'v{f.read().strip()}'
         except:
-            return 'v1.0'
+            return 'v1.0.1'
 
     def on_data_loaded(self, data):
         """Обработка успешной загрузки данных"""
@@ -3118,7 +1198,7 @@ class MainWindow(QMainWindow):
             self.loading_widget.hide()
             self.loading_widget = None
         
-        print(f"✓ Данные переданы в интерфейс")
+        log_info("✓ Данные переданы в интерфейс")
         
         self.start_auto_scan_if_needed()
     
@@ -3139,7 +1219,7 @@ class MainWindow(QMainWindow):
         
         self.old_central_widget = old_central
         
-        print(f"✗ Ошибка загрузки данных: {error}")
+        log_error(f"✗ Ошибка загрузки данных: {error}")
     
     def retry_data_loading(self):
         """Повторная попытка загрузки данных"""
@@ -3187,7 +1267,7 @@ class MainWindow(QMainWindow):
         from settings_manager import settings_manager
         
         if settings_manager.should_auto_scan():
-            print("Запуск автоматического сканирования системы...")
+            log_info("Запуск автоматического сканирования системы...")
             
             programs_data = getattr(self.programs_tab, 'all_programs', [])
             drivers_data = getattr(self.drivers_tab, 'all_drivers', [])
@@ -3200,7 +1280,7 @@ class MainWindow(QMainWindow):
     
     def on_background_scan_completed(self, programs_status, drivers_status, summary):
         """Обработка завершения фонового сканирования"""
-        print(f"Автосканирование завершено: программ {summary['programs_found']}, драйверов {summary['drivers_found']}")
+        log_info(f"Автосканирование завершено: программ {summary['programs_found']}, драйверов {summary['drivers_found']}")
         
         if hasattr(self, 'programs_tab') and hasattr(self.programs_tab, 'status_manager'):
             self.programs_tab.status_manager.refresh_cache()
@@ -3246,9 +1326,8 @@ class DownloadItem:
         self.widget.setFixedHeight(160)
         self.widget.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #353535, stop: 1 #2a2a2a);
-                border: none;
+                background-color: #353535;
+                border: 1px solid #4a4a4a;
                 border-radius: 15px;
             }
         """)
@@ -3500,7 +1579,7 @@ class DownloadItem:
             self.download_thread.download_error.connect(self.download_failed)
             self.download_thread.start()
         except Exception as e:
-            print(f"Ошибка в start_download: {e}")
+            log_error(f"Ошибка в start_download: {e}")
             if self.info_label:
                 self.info_label.setText(f"Ошибка: {e}")
 
@@ -3530,7 +1609,7 @@ class DownloadItem:
             else:
                 self.set_info_text(speed, "speed")
         except RuntimeError as e:
-            print(f"RuntimeError в update_progress: {e}")
+            log_error(f"RuntimeError в update_progress: {e}")
 
     def download_completed(self, file_path):
         """Скачивание завершено"""
@@ -3834,3 +1913,91 @@ class DownloadItem:
                 "delete": "×"
             }
             return emoji_map.get(icon_name, "•")
+    
+    def update_translations(self):
+        """Обновление всех переводов в интерфейсе без перезапуска"""
+        try:
+            print("=== UPDATE TRANSLATIONS CALLED ===")
+            log_info("Starting translations update")
+            
+            self.tab_widget.setTabText(0, t("tabs.news"))
+            self.tab_widget.setTabText(1, t("tabs.programs"))
+            self.tab_widget.setTabText(2, t("tabs.drivers"))
+            self.tab_widget.setTabText(3, t("tabs.library"))
+            self.tab_widget.setTabText(4, t("tabs.settings"))
+            print("Tab names updated")
+            
+            if hasattr(self, 'downloads_button'):
+                self.downloads_button.setText(t("main_window.downloads_button"))
+                print("Downloads button updated")
+            
+            if hasattr(self, 'version_label'):
+                try:
+                    with open(resource_path('version.txt'), 'r', encoding='utf-8') as f:
+                        version = f.read().strip()
+                    self.version_label.setText(t("app.version", version=version))
+                    print("Version label updated")
+                except:
+                    pass
+            
+            # Перезагружаем текущую вкладку для обновления её содержимого
+            current_index = self.tab_widget.currentIndex()
+            print(f"Current tab index: {current_index}")
+            
+            if hasattr(self, 'news_tab') and self.news_tab:
+                self.news_tab.load_news_from_data()
+                print("News tab updated")
+            
+            if hasattr(self, 'programs_tab') and self.programs_tab:
+                self.programs_tab.load_programs()
+                print("Programs tab updated")
+            
+            if hasattr(self, 'drivers_tab') and self.drivers_tab:
+                self.drivers_tab.load_drivers()
+                print("Drivers tab updated")
+            
+            if hasattr(self, 'downloads_tab') and self.downloads_tab:
+                self.downloads_tab.load_downloads()
+                print("Downloads tab updated")
+            
+            if hasattr(self, 'settings_tab') and self.settings_tab:
+                # Просто перезагружаем раздел интерфейса
+                self.settings_tab.show_interface_settings()
+                print("Settings tab updated")
+            
+            log_info("Translations updated successfully")
+            print("=== UPDATE TRANSLATIONS COMPLETED ===")
+            
+        except Exception as e:
+            log_error(f"Error updating translations: {e}")
+            print(f"ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def closeEvent(self, event):
+        """Обработка закрытия приложения"""
+        try:
+            # Очищаем все вкладки
+            if hasattr(self, 'programs_tab') and self.programs_tab:
+                self.programs_tab.cleanup()
+            
+            if hasattr(self, 'drivers_tab') and self.drivers_tab:
+                self.drivers_tab.cleanup()
+            
+            if hasattr(self, 'downloads_tab') and self.downloads_tab:
+                if hasattr(self.downloads_tab, 'cleanup'):
+                    self.downloads_tab.cleanup()
+            
+            # Останавливаем все анимации
+            if hasattr(self, 'snow_timer') and self.snow_timer:
+                self.snow_timer.stop()
+            
+            # Очищаем уведомления
+            notification_manager = get_notification_manager()
+            if notification_manager:
+                notification_manager.cleanup()
+                
+        except Exception as e:
+            print(f"Ошибка при закрытии приложения: {e}")
+        
+        event.accept()

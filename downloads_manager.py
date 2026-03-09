@@ -14,11 +14,22 @@ class DownloadsManager:
     
     def get_downloads_dir(self):
         """Получить путь к папке загрузок"""
-        if getattr(sys, 'frozen', False):
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(base_dir, "UHDOWNLOAD")
+        # Импортируем функцию из main.py
+        try:
+            from main import get_downloads_dir
+            return get_downloads_dir()
+        except:
+            # Fallback если не удалось импортировать
+            appdata = os.environ.get('APPDATA')
+            if appdata:
+                return os.path.join(appdata, 'UTILHELP', 'UTILHELPFILES')
+            else:
+                # Последний fallback
+                if getattr(sys, 'frozen', False):
+                    base_dir = os.path.dirname(sys.executable)
+                else:
+                    base_dir = os.path.dirname(os.path.abspath(__file__))
+                return os.path.join(base_dir, "UTILHELPFILES")
     
     def ensure_downloads_dir(self):
         """Создать папку загрузок если не существует"""

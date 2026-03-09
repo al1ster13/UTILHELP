@@ -4,15 +4,45 @@ from PyQt6.QtWidgets import QSystemTrayIcon, QMenu, QApplication
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QBrush, QColor
 from PyQt6.QtCore import QTimer
 from resource_path import get_icon_path
+from logger import log_info, log_error, log_warning, log_debug
 
 
 class NotificationManager:
-    """Менеджер системных уведомлений"""
+    """Менеджер уведомлений (системные и кастомные)"""
     
     def __init__(self, main_window=None):
         self.main_window = main_window
         self.tray_icon = None
+        self.toast_manager = None
         self.setup_tray_icon()
+    
+    def _get_toast_manager(self):
+        """Получить менеджер toast-уведомлений"""
+        if self.toast_manager is None:
+            try:
+                from ui.components.toast_notification import get_toast_manager
+                self.toast_manager = get_toast_manager(self.main_window)
+            except Exception as e:
+                log_error(f"Ошибка загрузки toast manager: {e}")
+        return self.toast_manager
+    
+    def _should_use_custom_notifications(self):
+        """Проверить, нужно ли использовать кастомные уведомления"""
+        try:
+            from settings_manager import settings_manager
+            
+            notifications_enabled = settings_manager.get_setting("notifications_enabled", True)
+            if not notifications_enabled:
+                log_info("Notifications disabled in settings")
+                return False
+            
+            style = settings_manager.get_setting("notification_style", "custom")
+            log_info(f"Notification style: {style}")
+            return style == "custom"
+        except Exception as e:
+            log_error(f"Ошибка проверки настроек уведомлений: {e}")
+            # По умолчанию используем кастомные
+            return True
     
     def setup_tray_icon(self):
         """Настройка системного трея"""
@@ -20,8 +50,10 @@ class NotificationManager:
             return
         
         try:
+            from PyQt6.QtCore import QFile
             icon_path = get_icon_path("utilhelp14x14.png")
-            if icon_path and os.path.exists(icon_path):
+            
+            if icon_path and (icon_path.startswith(":/") or os.path.exists(icon_path)):
                 icon = QIcon(icon_path)
             else:
                 icon = self.create_default_icon()
@@ -40,7 +72,7 @@ class NotificationManager:
             self.tray_icon.activated.connect(self.on_tray_activated)
             
         except Exception as e:
-            print(f"Ошибка настройки трея: {e}")
+            log_error(f"Ошибка настройки трея: {e}")
     
     def create_default_icon(self):
         """Создание иконки по умолчанию"""
@@ -70,7 +102,7 @@ class NotificationManager:
             if reason == 2:  # DoubleClick
                 self.show_main_window()
         except Exception as e:
-            print(f"Ошибка обработки клика по трею: {e}")
+            log_error(f"Ошибка обработки клика по трею: {e}")
     
     def show_main_window(self):
         """Показать главное окно"""
@@ -93,10 +125,25 @@ class NotificationManager:
                                 widget.showNormal()
                             break
         except Exception as e:
-            print(f"Ошибка показа главного окна: {e}")
+            log_error(f"Ошибка показа главного окна: {e}")
     
     def show_download_notification(self, program_name, success=True, item_type="программа"):
         """Показать уведомление о завершении загрузки"""
+        try:
+            from settings_manager import settings_manager
+            if not settings_manager.get_setting("notifications_enabled", True):
+                log_info("Notifications disabled, skipping download notification")
+                return
+        except Exception as e:
+            log_error(f"Ошибка проверки настроек: {e}")
+        
+        if self._should_use_custom_notifications():
+            toast_manager = self._get_toast_manager()
+            if toast_manager:
+                toast_manager.show_download_notification(program_name, success, item_type)
+                return
+        
+        # Используем системные уведомления
         if not self.tray_icon:
             return
             
@@ -122,10 +169,25 @@ class NotificationManager:
             self.tray_icon.showMessage(title, message, icon, 5000)
             
         except Exception as e:
-            print(f"Ошибка показа уведомления: {e}")
+            log_error(f"Ошибка показа уведомления загрузки: {e}")
     
     def show_installation_notification(self, program_name, success=True):
         """Показать уведомление о завершении установки"""
+        try:
+            from settings_manager import settings_manager
+            if not settings_manager.get_setting("notifications_enabled", True):
+                log_info("Notifications disabled, skipping installation notification")
+                return
+        except Exception as e:
+            log_error(f"Ошибка проверки настроек: {e}")
+        
+        if self._should_use_custom_notifications():
+            toast_manager = self._get_toast_manager()
+            if toast_manager:
+                toast_manager.show_installation_notification(program_name, success)
+                return
+        
+        # Используем системные уведомления
         if not self.tray_icon or not QSystemTrayIcon.supportsMessages():
             return
         
@@ -142,10 +204,25 @@ class NotificationManager:
             self.tray_icon.showMessage(title, message, icon, 5000)
             
         except Exception as e:
-            print(f"Ошибка показа уведомления: {e}")
+            log_error(f"Ошибка показа уведомления установки: {e}")
     
     def show_update_notification(self, version):
         """Показать уведомление о доступном обновлении"""
+        try:
+            from settings_manager import settings_manager
+            if not settings_manager.get_setting("notifications_enabled", True):
+                log_info("Notifications disabled, skipping update notification")
+                return
+        except Exception as e:
+            log_error(f"Ошибка проверки настроек: {e}")
+        
+        if self._should_use_custom_notifications():
+            toast_manager = self._get_toast_manager()
+            if toast_manager:
+                toast_manager.show_update_notification(version)
+                return
+        
+        # Используем системные уведомления
         if not self.tray_icon or not QSystemTrayIcon.supportsMessages():
             return
         
@@ -157,7 +234,7 @@ class NotificationManager:
             self.tray_icon.showMessage(title, message, icon, 8000)
             
         except Exception as e:
-            print(f"Ошибка показа уведомления: {e}")
+            log_error(f"Ошибка показа уведомления обновления: {e}")
     
     def show_custom_notification(self, title, message, success=True):
         """Показать пользовательское уведомление"""
@@ -169,7 +246,7 @@ class NotificationManager:
             self.tray_icon.showMessage(title, message, icon, 5000)
             
         except Exception as e:
-            print(f"Ошибка показа уведомления: {e}")
+            log_error(f"Ошибка показа пользовательского уведомления: {e}")
 
 
 _notification_manager = None

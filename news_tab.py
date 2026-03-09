@@ -5,6 +5,7 @@ from PyQt6.QtGui import QDesktopServices
 from custom_dialogs import CustomNewsDialog
 from scroll_helper import configure_scroll_area
 from scroll_helper import configure_scroll_area
+from localization import t
 
 
 class NewsTab(QWidget):
@@ -25,9 +26,9 @@ class NewsTab(QWidget):
             }
         """)
         
-        title_label = QLabel("НОВОСТИ")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("""
+        self.title_label = QLabel(t("tabs.news"))
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet("""
             QLabel {
                 color: #ffffff;
                 font-size: 28px;
@@ -36,7 +37,7 @@ class NewsTab(QWidget):
                 letter-spacing: 2px;
             }
         """)
-        self.layout.addWidget(title_label)
+        self.layout.addWidget(self.title_label)
         
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -116,23 +117,32 @@ class NewsTab(QWidget):
         """Загрузка новостей из данных"""
         try:
             if not self.news_data:
-                self.news_content.setText("""
+                self.news_content.setText(f"""
                     <div style="text-align: center; color: #888888; padding: 50px; background-color: #252525;">
-                        <h2 style="color: #ffffff;">Новости не загружены</h2>
-                        <p>Проверьте подключение к интернету</p>
+                        <h2 style="color: #ffffff;">{t("news.no_news")}</h2>
+                        <p>{t("news.check_connection")}</p>
                     </div>
                 """)
                 return
             
             sorted_news = sorted(self.news_data, key=lambda x: x.get('datetime_sort', ''), reverse=True)
             
+            from localization import get_localized_news_title
+            
             html_content = ""
             for news_item in sorted_news:
                 news_id = news_item.get('id', 0)
-                title = news_item.get('title', 'Без названия')
-                date = news_item.get('date', 'Дата не указана')
-                time = news_item.get('time', '12:00')
-                datetime_display = f"{date} в {time}"
+                title = get_localized_news_title(news_item)
+                date = news_item.get('date', '')
+                time = news_item.get('time', '')
+                
+                # Формируем дату с переводом
+                if date and time:
+                    datetime_display = f"{date} {t('news.at')} {time}"
+                elif date:
+                    datetime_display = date
+                else:
+                    datetime_display = ""
                 
                 html_content += f"""
                 <div style="margin-bottom: 20px; padding: 10px;">
@@ -153,10 +163,11 @@ class NewsTab(QWidget):
         except Exception as e:
             self.news_content.setText(f"""
                 <div style="text-align: center; color: #ff4757; padding: 50px; background-color: #252525;">
-                    <h3>Ошибка загрузки новостей</h3>
+                    <h3>{t("news.load_error")}</h3>
                     <p>{str(e)}</p>
                 </div>
             """)
+
 
     def handle_news_click(self, url):
         url_str = url.toString()
@@ -182,11 +193,20 @@ class NewsTab(QWidget):
                     break
             
             if news_item:
-                title = news_item.get('title', 'Без названия')
-                content = news_item.get('content', '')
-                date = news_item.get('date', 'Дата не указана')
-                time = news_item.get('time', '12:00')
-                datetime_display = f"{date} в {time}"
+                from localization import get_localized_news_title, get_localized_news_content
+                
+                title = get_localized_news_title(news_item)
+                content = get_localized_news_content(news_item)
+                date = news_item.get('date', '')
+                time = news_item.get('time', '')
+                
+                # Формируем дату с переводом
+                if date and time:
+                    datetime_display = f"{date} {t('news.at')} {time}"
+                elif date:
+                    datetime_display = date
+                else:
+                    datetime_display = ""
                 
                 detailed_content = f"""
                 <div style="padding: 0px; margin: 0px;">
@@ -194,7 +214,7 @@ class NewsTab(QWidget):
                         {title}
                     </h2>
                     <p style="color: #888888; font-size: 12px; margin: 0px 0px 15px 0px; text-align: center;">
-                        <strong>Дата:</strong> {datetime_display}
+                        {datetime_display}
                     </p>
                     <div style="color: #ffffff; line-height: 1.6; font-size: 13px; margin-top: 15px;">
                         {content}
@@ -212,14 +232,14 @@ class NewsTab(QWidget):
                 
                 dialog.exec()
             else:
-                error_content = """
+                error_content = f"""
                 <div style="padding: 20px; text-align: center;">
                     <p style="color: #ff4757; font-size: 14px;">
-                        Новость не найдена
+                        {t("news.not_found")}
                     </p>
                 </div>
                 """
-                dialog = CustomNewsDialog("Ошибка", error_content, self)
+                dialog = CustomNewsDialog(t("errors.download_failed"), error_content, self)
                 dialog.finished.connect(self.on_news_dialog_closed)
                 dialog.exec()
                 
@@ -227,13 +247,14 @@ class NewsTab(QWidget):
             error_content = f"""
             <div style="padding: 20px; text-align: center;">
                 <p style="color: #ff4757; font-size: 14px;">
-                    Ошибка загрузки новости: {str(e)}
+                    {t("news.load_error")}: {str(e)}
                 </p>
             </div>
             """
-            dialog = CustomNewsDialog("Ошибка", error_content, self)
+            dialog = CustomNewsDialog(t("news.load_error"), error_content, self)
             dialog.finished.connect(self.on_news_dialog_closed)
             dialog.exec()
+
     
     def on_news_dialog_closed(self):
         """Обработчик закрытия диалога новости"""
@@ -251,3 +272,21 @@ class NewsTab(QWidget):
                 self.current_news_dialog = None
             except:
                 pass
+
+    def update_translations(self):
+        """Обновление переводов при смене языка"""
+        from localization import t
+        
+        # Закрываем открытый диалог новости если есть
+        if self.current_news_dialog is not None:
+            try:
+                self.current_news_dialog.close()
+                self.current_news_dialog = None
+            except:
+                pass
+        
+        if hasattr(self, 'title_label'):
+            self.title_label.setText(t("tabs.news"))
+        
+        # Перезагружаем новости с новыми переводами
+        self.load_news_from_data()

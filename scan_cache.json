@@ -1,0 +1,176 @@
+{
+  "last_scan": "2026-03-05T12:38:14.938270",
+  "programs": {
+    "Google Chrome": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "Opera GX": {
+      "installed": true,
+      "exact_name": "Opera GX Stable 127.0.5778.96",
+      "version": "127.0.5778.96"
+    },
+    "Yandex Browser": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "CrystalDiskInfo": {
+      "installed": true,
+      "exact_name": "CrystalDiskInfo 9.7.2",
+      "version": "9.7.2"
+    },
+    "qBittorrent": {
+      "installed": true,
+      "exact_name": "qBittorrent",
+      "version": "5.1.4"
+    },
+    "Rufus": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "VLC": {
+      "installed": true,
+      "exact_name": "VLC media player",
+      "version": "3.0.21"
+    },
+    "XnView MP": {
+      "installed": true,
+      "exact_name": "XnView MP (x64)",
+      "version": "1.9.10.0"
+    },
+    "Yandex Music": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "Opera": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "Brave Browser": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "Vivaldi": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "Tor Browser": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "7-Zip": {
+      "installed": true,
+      "exact_name": "7-Zip 25.01 (x64)",
+      "version": "25.01"
+    },
+    "WinRAR": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "PeaZIP": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "Free Download Manager (FDM)": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "uTorrent": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "LibreOffice": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "Notepad++": {
+      "installed": true,
+      "exact_name": "Notepad++ (64-bit x64)",
+      "version": "8.8.9"
+    },
+    "Visual Studio Code": {
+      "installed": true,
+      "exact_name": "Microsoft Visual Studio 2010 Tools for Office Runtime (x64)",
+      "version": "10.0.60922"
+    },
+    "AIMP": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "foobar2000": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    }
+  },
+  "drivers": {
+    "AMD Adrenalin Edition": {
+      "installed": true,
+      "exact_name": "AMD Settings",
+      "version": "2025.0701.0345.1996"
+    },
+    "Intel Driver & Support Assistant": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "NVIDIA Driver | NVIDIA APP": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "AMD Ryzen Master": {
+      "installed": true,
+      "exact_name": "AMD Settings",
+      "version": "2025.0701.0345.1996"
+    },
+    "Visual C++ Redistributable": {
+      "installed": true,
+      "exact_name": "Microsoft Visual C++ 2005 Redistributable",
+      "version": "8.0.61187"
+    },
+    "Microsoft .NET Framework": {
+      "installed": true,
+      "exact_name": "Microsoft .NET Framework 4.8 SDK",
+      "version": "4.8.04084"
+    },
+    "DirectX Runtime": {
+      "installed": true,
+      "exact_name": "DirectX (системный)",
+      "version": "Установлен"
+    },
+    "OpenAL": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "NVIDIA PhysX": {
+      "installed": false,
+      "exact_name": null,
+      "version": null
+    },
+    "Java Runtime Environment (JRE)": {
+      "installed": true,
+      "exact_name": "Java 8 Update 471 (64-bit)",
+      "version": "8.0.4710.9"
+    }
+  },
+  "scan_summary": {
+    "programs_found": 215,
+    "drivers_found": 61
+  }
+}

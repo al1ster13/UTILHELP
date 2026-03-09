@@ -2,61 +2,79 @@ import json
 import os
 from typing import Dict, Any
 from datetime import datetime
+from logger import log_info, log_error, log_warning, log_debug
 
 
 def get_data_dir():
     """Получить папку для данных приложения"""
     import sys
     
-    # Проверяем портативный режим
-    if getattr(sys, 'frozen', False):
-        app_dir = os.path.dirname(sys.executable)
-    else:
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    portable_marker = os.path.join(app_dir, "PORTABLE_MODE.txt")
-    
-    if os.path.exists(portable_marker):
-        # Портативный режим - используем папку программы
-        data_dir = os.path.join(app_dir, "data")
-    else:
-        # Обычный режим - используем AppData или папку программы
-        try:
-            # Пробуем использовать AppData
-            appdata = os.environ.get('APPDATA')
-            if appdata:
-                utilhelp_data = os.path.join(appdata, 'UTILHELP')
-                os.makedirs(utilhelp_data, exist_ok=True)
-                # Проверяем права на запись
-                test_file = os.path.join(utilhelp_data, 'test_write.tmp')
-                try:
-                    with open(test_file, 'w') as f:
-                        f.write('test')
-                    os.remove(test_file)
-                    data_dir = utilhelp_data
-                except:
-                    # Если AppData не работает, используем папку программы
-                    data_dir = os.path.join(app_dir, "data")
-            else:
-                data_dir = os.path.join(app_dir, "data")
-        except:
+    try:
+        if getattr(sys, 'frozen', False):
+            app_dir = os.path.dirname(sys.executable)
+        else:
+            app_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        portable_marker = os.path.join(app_dir, "PORTABLE_MODE.txt")
+        if os.path.exists(portable_marker):
+            # Портативный режим - используем папку программы
             data_dir = os.path.join(app_dir, "data")
+            os.makedirs(data_dir, exist_ok=True)
+            return data_dir
+    except:
+        pass
     
+    # Обычный режим - используем AppData
+    appdata = os.environ.get('APPDATA')
+    if appdata:
+        data_dir = os.path.join(appdata, 'UTILHELP', 'data')
+        try:
+            os.makedirs(data_dir, exist_ok=True)
+            return data_dir
+        except Exception as e:
+            log_error(f"Не удалось создать папку в AppData: {e}")
+    
+    # Fallback на временную папку
+    import tempfile
+    data_dir = os.path.join(tempfile.gettempdir(), 'UTILHELP_data', 'data')
     try:
         os.makedirs(data_dir, exist_ok=True)
-        # Проверяем права на запись
-        test_file = os.path.join(data_dir, 'test_write.tmp')
-        with open(test_file, 'w') as f:
-            f.write('test')
-        os.remove(test_file)
         return data_dir
+    except:
+        # Последний fallback - папка программы
+        if getattr(sys, 'frozen', False):
+            app_dir = os.path.dirname(sys.executable)
+        else:
+            app_dir = os.path.dirname(os.path.abspath(__file__))
+        return app_dir
+
+
+def detect_system_language():
+    """Определить язык системы"""
+    try:
+        import locale
+        
+        # Получаем язык системы
+        system_lang = locale.getdefaultlocale()[0]
+        
+        if system_lang:
+            # Извлекаем код языка (первые 2 символа)
+            lang_code = system_lang[:2].lower()
+            
+            # Поддерживаемые языки
+            supported_languages = ['ru', 'en']
+            
+            if lang_code in supported_languages:
+                log_info(f"Определен язык системы: {lang_code}")
+                return lang_code
+        
+        # По умолчанию русский
+        log_info("Не удалось определить язык системы, используется русский")
+        return "ru"
+        
     except Exception as e:
-        print(f"Ошибка создания папки данных: {e}")
-        # В крайнем случае используем временную папку
-        import tempfile
-        temp_data = os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
-        os.makedirs(temp_data, exist_ok=True)
-        return temp_data
+        log_error(f"Ошибка определения языка системы: {e}")
+        return "ru"
 
 
 class SettingsManager:
@@ -67,17 +85,22 @@ class SettingsManager:
         self.settings_file = os.path.join(self.data_dir, "settings.json")
         self.scan_cache_file = os.path.join(self.data_dir, "scan_cache.json")
         
-        print(f"Используется папка данных: {self.data_dir}")
+        log_info(f"Используется папка данных: {self.data_dir}")
         
         self.default_settings = {
-            "version": "1.0",
+            "version": "1.0.1",
             "auto_scan_enabled": True,
             "scan_interval_minutes": 30,
             "cache_expiry_hours": 24,
             "last_scan_timestamp": None,
             "scan_on_startup": True,
             "notifications_enabled": True,
-            "theme": "dark"
+            "notification_style": "custom",
+            "notification_sounds": True,
+            "theme": "dark",
+            "language": "ru",
+            "view_mode_programs": "grid",
+            "view_mode_drivers": "grid"
         }
         self.settings = self.load_settings()
         self.scan_cache = self.load_scan_cache()
@@ -93,9 +116,21 @@ class SettingsManager:
                             settings[key] = value
                     return settings
             else:
-                return self.default_settings.copy()
+                # Первый запуск - определяем язык системы
+                settings = self.default_settings.copy()
+                system_lang = detect_system_language()
+                settings["language"] = system_lang
+                log_info(f"Первый запуск: установлен язык {system_lang}")
+                
+                try:
+                    with open(self.settings_file, 'w', encoding='utf-8') as f:
+                        json.dump(settings, f, indent=2, ensure_ascii=False)
+                except Exception as e:
+                    log_error(f"Ошибка сохранения начальных настроек: {e}")
+                
+                return settings
         except Exception as e:
-            print(f"Ошибка загрузки настроек: {e}")
+            log_error(f"Ошибка загрузки настроек: {e}")
             return self.default_settings.copy()
     
     def save_settings(self) -> bool:
@@ -105,7 +140,7 @@ class SettingsManager:
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
             return True
         except Exception as e:
-            print(f"Ошибка сохранения настроек: {e}")
+            log_error(f"Ошибка сохранения настроек: {e}")
             return False
     
     def load_scan_cache(self) -> Dict[str, Any]:
@@ -122,7 +157,7 @@ class SettingsManager:
                     "scan_summary": {"programs_found": 0, "drivers_found": 0}
                 }
         except Exception as e:
-            print(f"Ошибка загрузки кеша сканирования: {e}")
+            log_error(f"Ошибка загрузки кеша сканирования: {e}")
             return {
                 "last_scan": None,
                 "programs": {},
@@ -148,7 +183,7 @@ class SettingsManager:
             
             return True
         except Exception as e:
-            print(f"Ошибка сохранения кеша сканирования: {e}")
+            log_error(f"Ошибка сохранения кеша сканирования: {e}")
             return False
     
     def is_cache_valid(self) -> bool:
@@ -205,7 +240,6 @@ class SettingsManager:
     def migrate_from_db(self):
         """Миграция настроек из старой SQLite базы (если есть)"""
         try:
-            # Проверяем старые пути
             old_paths = [
                 "settings.db",
                 os.path.join("data", "settings.db"),
@@ -214,17 +248,17 @@ class SettingsManager:
             
             for old_db_path in old_paths:
                 if os.path.exists(old_db_path):
-                    print(f"Найдена старая база настроек: {old_db_path}")
+                    log_info(f"Найдена старая база настроек: {old_db_path}")
                     backup_path = os.path.join(self.data_dir, "settings.db.backup")
                     if not os.path.exists(backup_path):
                         try:
                             if old_db_path != backup_path:
                                 os.rename(old_db_path, backup_path)
-                                print(f"Старая база перенесена в {backup_path}")
+                                log_info(f"Старая база перенесена в {backup_path}")
                         except Exception as e:
-                            print(f"Ошибка переноса базы: {e}")
+                            log_error(f"Ошибка переноса базы: {e}")
                             
         except Exception as e:
-            print(f"Ошибка миграции: {e}")
+            log_error(f"Ошибка миграции: {e}")
 
 settings_manager = SettingsManager()
