@@ -19,86 +19,80 @@ class NewsTab(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(20, 20, 20, 20)
         
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
                 border-radius: 10px;
-            }
+            }}
         """)
-        
+
         self.title_label = QLabel(t("tabs.news"))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 28px;
                 font-weight: bold;
                 margin: 20px 0px;
                 letter-spacing: 2px;
-            }
+            }}
         """)
         self.layout.addWidget(self.title_label)
-        
+
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        
+
         configure_scroll_area(self.scroll_area)
-        
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
+
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 border: none;
                 background-color: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: #252525;
+            }}
+            QScrollBar:vertical {{
+                background-color: {c['scrollbar_bg']};
                 width: 16px;
-                margin: 0px 0px 0px 0px;
                 border-radius: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['scrollbar_handle']};
                 border-radius: 8px;
                 min-height: 30px;
-                margin: 2px 2px 2px 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: #777777;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                margin: 2px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['scrollbar_hover']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 border: none;
                 background: transparent;
                 height: 0px;
                 width: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: #252525;
-            }
-            QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
-                width: 0px;
-                height: 0px;
-                background: transparent;
-            }
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: {c['scrollbar_bg']};
+            }}
         """)
-        
+
         self.news_content = QTextBrowser()
         self.news_content.setOpenExternalLinks(False)
-        self.news_content.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # Убираем фокус
+        self.news_content.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.news_content.anchorClicked.connect(self.handle_news_click)
-        self.news_content.setStyleSheet("""
-            QTextBrowser {
-                background-color: #252525;
+        self.news_content.setStyleSheet(f"""
+            QTextBrowser {{
+                background-color: {c['news_bg']};
                 border: none;
                 border-radius: 10px;
                 padding: 20px 0px 20px 20px;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 14px;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         
         self.scroll_area.setWidget(self.news_content)
@@ -115,11 +109,14 @@ class NewsTab(QWidget):
 
     def load_news_from_data(self):
         """Загрузка новостей из данных"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         try:
             if not self.news_data:
                 self.news_content.setText(f"""
-                    <div style="text-align: center; color: #888888; padding: 50px; background-color: #252525;">
-                        <h2 style="color: #ffffff;">{t("news.no_news")}</h2>
+                    <div style="text-align: center; color: {c['text_hint']}; padding: 50px;">
+                        <h2 style="color: {c['text_primary']};">{t("news.no_news")}</h2>
                         <p>{t("news.check_connection")}</p>
                     </div>
                 """)
@@ -129,40 +126,44 @@ class NewsTab(QWidget):
             
             from localization import get_localized_news_title
             
+            from theme_manager import theme_manager
+            c = theme_manager.colors
+
             html_content = ""
             for news_item in sorted_news:
                 news_id = news_item.get('id', 0)
                 title = get_localized_news_title(news_item)
                 date = news_item.get('date', '')
-                time = news_item.get('time', '')
-                
-                # Формируем дату с переводом
-                if date and time:
-                    datetime_display = f"{date} {t('news.at')} {time}"
+                time_val = news_item.get('time', '')
+
+                if date and time_val:
+                    datetime_display = f"{date} {t('news.at')} {time_val}"
                 elif date:
                     datetime_display = date
                 else:
                     datetime_display = ""
-                
+
                 html_content += f"""
                 <div style="margin-bottom: 20px; padding: 10px;">
-                    <div style="font-size: 20px; color: #ffffff; font-weight: bold; margin-bottom: 4px;">
-                        <a href="news_{news_id}" style="color: #ffffff; text-decoration: none;">
+                    <div style="font-size: 20px; color: {c['text_primary']}; font-weight: bold; margin-bottom: 4px;">
+                        <a href="news_{news_id}" style="color: {c['text_primary']}; text-decoration: none;">
                             {title}
                         </a>
                     </div>
-                    <div style="color: #cccccc; font-size: 12px; font-weight: bold;">
+                    <div style="color: {c['text_secondary']}; font-size: 12px; font-weight: bold;">
                         {datetime_display}
                     </div>
                 </div>
-                <hr style="border: none; height: 1px; background-color: #404040; margin: 10px 0;">
+                <hr style="border: none; height: 1px; background-color: {c['border']}; margin: 10px 0;">
                 """
-            
+
             self.news_content.setText(html_content)
             
         except Exception as e:
+            from theme_manager import theme_manager
+            c = theme_manager.colors
             self.news_content.setText(f"""
-                <div style="text-align: center; color: #ff4757; padding: 50px; background-color: #252525;">
+                <div style="text-align: center; color: {c['error']}; padding: 50px;">
                     <h3>{t("news.load_error")}</h3>
                     <p>{str(e)}</p>
                 </div>
@@ -208,15 +209,18 @@ class NewsTab(QWidget):
                 else:
                     datetime_display = ""
                 
+                from theme_manager import theme_manager
+                c = theme_manager.colors
+
                 detailed_content = f"""
                 <div style="padding: 0px; margin: 0px;">
-                    <h2 style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0px 0px 5px 0px; text-align: center;">
+                    <h2 style="color: {c['text_primary']}; font-size: 24px; font-weight: bold; margin: 0px 0px 5px 0px; text-align: center;">
                         {title}
                     </h2>
-                    <p style="color: #888888; font-size: 12px; margin: 0px 0px 15px 0px; text-align: center;">
+                    <p style="color: {c['text_hint']}; font-size: 12px; margin: 0px 0px 15px 0px; text-align: center;">
                         {datetime_display}
                     </p>
-                    <div style="color: #ffffff; line-height: 1.6; font-size: 13px; margin-top: 15px;">
+                    <div style="color: {c['text_primary']}; line-height: 1.6; font-size: 13px; margin-top: 15px;">
                         {content}
                     </div>
                 </div>
@@ -277,7 +281,6 @@ class NewsTab(QWidget):
         """Обновление переводов при смене языка"""
         from localization import t
         
-        # Закрываем открытый диалог новости если есть
         if self.current_news_dialog is not None:
             try:
                 self.current_news_dialog.close()
@@ -288,5 +291,73 @@ class NewsTab(QWidget):
         if hasattr(self, 'title_label'):
             self.title_label.setText(t("tabs.news"))
         
-        # Перезагружаем новости с новыми переводами
+        self.load_news_from_data()
+
+    def apply_theme(self):
+        """Применить тему к вкладке новостей"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
+                border-radius: 10px;
+            }}
+        """)
+        
+        if hasattr(self, 'title_label'):
+            self.title_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {c['text_primary']};
+                    font-size: 28px;
+                    font-weight: bold;
+                    margin: 20px 0px;
+                    letter-spacing: 2px;
+                }}
+            """)
+        
+        if hasattr(self, 'scroll_area'):
+            self.scroll_area.setStyleSheet(f"""
+                QScrollArea {{
+                    border: none;
+                    background-color: transparent;
+                }}
+                QScrollBar:vertical {{
+                    background-color: {c['scrollbar_bg']};
+                    width: 16px;
+                    border-radius: 0px;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {c['scrollbar_handle']};
+                    border-radius: 8px;
+                    min-height: 30px;
+                    margin: 2px;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {c['scrollbar_hover']};
+                }}
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                    border: none;
+                    background: transparent;
+                    height: 0px;
+                    width: 0px;
+                }}
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                    background: {c['scrollbar_bg']};
+                }}
+            """)
+        
+        if hasattr(self, 'news_content'):
+            self.news_content.setStyleSheet(f"""
+                QTextBrowser {{
+                    background-color: {c['news_bg']};
+                    border: none;
+                    border-radius: 10px;
+                    padding: 20px 0px 20px 20px;
+                    color: {c['text_primary']};
+                    font-size: 14px;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                }}
+            """)
+        
         self.load_news_from_data()
