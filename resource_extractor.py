@@ -49,19 +49,16 @@ class ResourceExtractor:
                 log_error(f"Resource not found in QRC: {qrc_path}")
                 return False
             
-            # Открываем ресурс
             qrc_file = QFile(qrc_path)
             if not qrc_file.open(QIODevice.OpenModeFlag.ReadOnly):
                 log_error(f"Failed to open QRC resource: {qrc_path}")
                 return False
             
-            # Читаем данные
             data = qrc_file.readAll()
             qrc_file.close()
             
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             
-            # Записываем в файл
             with open(output_path, 'wb') as f:
                 f.write(data.data())
             
@@ -104,7 +101,6 @@ class ResourceExtractor:
             icon_names: Список имен иконок для извлечения. Если None, извлекаются все системные иконки.
         """
         if icon_names is None:
-            # Все системные иконки для извлечения в файловую систему
             icon_names = [
                 "books.png",
                 "box.png",
@@ -181,7 +177,6 @@ class ResourceExtractor:
             if not os.path.exists(file_path):
                 return True
             
-            # Сравниваем размеры
             qrc_file = QFile(qrc_path)
             if qrc_file.open(QIODevice.OpenModeFlag.ReadOnly):
                 qrc_size = qrc_file.size()
@@ -207,7 +202,6 @@ class ResourceExtractor:
             log_error("Failed to create directories")
             return False
         
-        # Извлекаем только звуки (иконки работают напрямую из QRC)
         sounds_ok = self.extract_sounds()
         
         if sounds_ok:
@@ -218,7 +212,6 @@ class ResourceExtractor:
             return False
 
 
-# Глобальный экземпляр
 _extractor = None
 
 
