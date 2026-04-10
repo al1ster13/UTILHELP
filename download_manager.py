@@ -270,7 +270,6 @@ class DownloadThread(QThread):
         try:
             import ssl
             
-            # Валидация URL
             if not self.url or not isinstance(self.url, str):
                 self.download_error.emit("Ошибка: некорректный URL")
                 return
@@ -280,7 +279,6 @@ class DownloadThread(QThread):
                 self.download_error.emit(f"Ошибка: неподдерживаемый протокол {parsed_url.scheme}")
                 return
                 
-            # Рекомендуем использовать HTTPS для безопасности
             if parsed_url.scheme == 'http':
                 log_warning(f"Загрузка по небезопасному HTTP протоколу: {self.url}")
             
