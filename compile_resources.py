@@ -18,8 +18,6 @@ def compile_resources():
     print(f"🔨 Компиляция {qrc_file} → {output_file}...")
     
     try:
-        # PyQt6 не имеет pyrcc6, используем pyside6-rcc с совместимостью
-        # Генерируем код совместимый с PyQt6
         commands = [
             # PySide6-rcc с генерацией для PyQt6
             ["pyside6-rcc", qrc_file, "-g", "python", "-o", output_file],
@@ -52,7 +50,6 @@ def compile_resources():
             with open(output_file, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # Заменяем импорты PySide6 на PyQt6
             content = content.replace('from PySide6', 'from PyQt6')
             content = content.replace('PySide6.', 'PyQt6.')
             
