@@ -13,7 +13,7 @@ from PyQt6.QtGui import QPixmap, QIcon, QTextBlockFormat
 class UpdateChecker:
     """Класс для проверки обновлений с GitHub"""
     def __init__(self):
-        self.current_version = "1.0.1"  
+        self.current_version = "1.1.0"  
         self.github_repo = "al1ster13/UTILHELP"  
         self.github_api_url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
         
