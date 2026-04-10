@@ -11,38 +11,32 @@ from .types import StyleSheet
 
 class StyleSheets:
     """Коллекция стилей для переиспользования"""
-    
-    # Основные цвета
-    COLORS = {
-        'background_primary': '#1a1a1a',
-        'background_secondary': '#2d2d2d',
-        'background_tertiary': '#3d3d3d',
-        'text_primary': '#ffffff',
-        'text_secondary': '#cccccc',
-        'text_muted': '#888888',
-        'accent': '#4CAF50',
-        'border': '#3d3d3d',
-        'hover': '#4d4d4d'
-    }
-    
+
+    @staticmethod
+    def _c():
+        """Получить текущую палитру цветов"""
+        from theme_manager import theme_manager
+        return theme_manager.colors
+
     @staticmethod
     def get_base_widget_style() -> StyleSheet:
         """Базовый стиль для виджетов"""
+        c = StyleSheets._c()
         return f"""
             QWidget {{
-                background-color: {StyleSheets.COLORS['background_primary']};
-                color: {StyleSheets.COLORS['text_primary']};
+                background-color: {c['bg_main']};
+                color: {c['text_primary']};
                 font-family: 'Segoe UI', Arial, sans-serif;
                 border-radius: 8px;
             }}
         """
-    
+
     @staticmethod
     def get_button_style(active: bool = False) -> StyleSheet:
         """Стиль для кнопок"""
-        bg_color = StyleSheets.COLORS['background_tertiary'] if active else 'transparent'
-        text_color = StyleSheets.COLORS['text_primary'] if active else StyleSheets.COLORS['text_secondary']
-        
+        c = StyleSheets._c()
+        bg_color = c['bg_input'] if active else 'transparent'
+        text_color = c['text_primary'] if active else c['text_secondary']
         return f"""
             QPushButton {{
                 background-color: {bg_color};
@@ -55,50 +49,53 @@ class StyleSheets:
                 text-align: left;
             }}
             QPushButton:hover {{
-                background-color: {StyleSheets.COLORS['background_secondary']};
-                color: {StyleSheets.COLORS['text_primary']};
+                background-color: {c['bg_hover']};
+                color: {c['text_primary']};
             }}
             QPushButton:focus {{
                 outline: none;
                 border: none;
             }}
         """
-    
+
     @staticmethod
     def get_title_style(size: int = 24) -> StyleSheet:
         """Стиль для заголовков"""
+        c = StyleSheets._c()
         return f"""
             QLabel {{
-                color: {StyleSheets.COLORS['text_primary']};
+                color: {c['text_primary']};
                 font-size: {size}px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
             }}
         """
-    
+
     @staticmethod
     def get_description_style() -> StyleSheet:
         """Стиль для описаний"""
+        c = StyleSheets._c()
         return f"""
             QLabel {{
-                color: {StyleSheets.COLORS['text_secondary']};
+                color: {c['text_secondary']};
                 font-size: 12px;
                 font-family: 'Segoe UI', Arial, sans-serif;
             }}
         """
-    
+
     @staticmethod
     def get_setting_item_style() -> StyleSheet:
         """Стиль для элементов настроек"""
+        c = StyleSheets._c()
         return f"""
             QWidget {{
-                background-color: {StyleSheets.COLORS['background_secondary']};
+                background-color: {c['bg_card']};
                 border-radius: 12px;
-                border: 1px solid {StyleSheets.COLORS['border']};
+                border: 1px solid {c['card_border']};
             }}
             QWidget:hover {{
-                border: 1px solid {StyleSheets.COLORS['hover']};
-                background-color: #333333;
+                border: 1px solid {c['border_hover']};
+                background-color: {c['bg_hover']};
             }}
         """
 
@@ -268,9 +265,7 @@ class ValidationUtils:
     def sanitize_filename(filename: str) -> str:
         """Очистить имя файла от недопустимых символов"""
         import re
-        # Удаляем недопустимые символы
         sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
-        # Ограничиваем длину
         if len(sanitized) > 100:
             name, ext = sanitized.rsplit('.', 1) if '.' in sanitized else (sanitized, '')
             sanitized = name[:90] + ('.' + ext if ext else '')
