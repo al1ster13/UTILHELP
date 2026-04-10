@@ -79,16 +79,16 @@
 <div align="center">
 
 ### Main Window
-![Main Window](docs/screenshots/main-window.png)
+![Main Window](docs/screenshots/main-window-en.png)
 
 ### Program Manager
-![Programs](docs/screenshots/programs-tab.png)
+![Programs](docs/screenshots/programs-tab-en.png)
 
 ### Driver Manager  
-![Drivers](docs/screenshots/drivers-tab.png)
+![Drivers](docs/screenshots/drivers-tab-en.png)
 
 ### Download Library
-![Library](docs/screenshots/library-tab.png)
+![Library](docs/screenshots/library-tab-en.png)
 
 </div>
 
