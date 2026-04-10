@@ -269,6 +269,8 @@ class CustomNewsDialog(QDialog):
                 font-size: 13px;
                 background-color: transparent;
                 border: none;
+                padding: 0px;
+                margin: 0px;
             }}
         """)
         content_label.setWordWrap(True)
@@ -279,22 +281,44 @@ class CustomNewsDialog(QDialog):
         scroll_area.setWidget(content_label)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll_area.setLineWidth(0)
+        scroll_area.setMidLineWidth(0)
         configure_scroll_area(scroll_area)
         scroll_area.setStyleSheet(f"""
-            QScrollArea {{ border: none; background-color: transparent; }}
-            QScrollBar:vertical {{
+            QScrollArea {{
+                border: none;
                 background-color: transparent;
-                width: 16px; border-radius: 8px; margin: 0px;
+            }}
+            QScrollBar:vertical {{
+                background-color: {c['bg_secondary']};
+                width: 16px;
+                border: none;
+                margin: 0px;
+            }}
+            QScrollBar::groove:vertical {{
+                background-color: {c['bg_secondary']};
+                border: none;
             }}
             QScrollBar::handle:vertical {{
                 background-color: {c['scrollbar_handle']};
-                border-radius: 8px; min-height: 30px; margin: 2px;
+                border-radius: 8px;
+                min-height: 30px;
+                margin: 2px;
+                border: none;
             }}
-            QScrollBar::handle:vertical:hover {{ background-color: {c['scrollbar_hover']}; }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['scrollbar_hover']};
+            }}
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                border: none; background: none; height: 0px;
+                border: none;
+                background: none;
+                height: 0px;
             }}
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background-color: {c['bg_secondary']};
+                border: none;
+            }}
         """)
 
         bg_layout.addWidget(scroll_area)
@@ -351,9 +375,13 @@ class CustomNewsDialog(QDialog):
         if hasattr(self, 'dragging') and self.dragging and event.buttons() & Qt.MouseButton.LeftButton:
             new_pos = event.globalPosition().toPoint() - self.drag_position
             if self.parent():
-                parent_rect = self.parent().geometry()
-                new_x = max(parent_rect.x() + 10, min(new_pos.x(), parent_rect.x() + parent_rect.width() - self.width() - 10))
-                new_y = max(parent_rect.y() + 60, min(new_pos.y(), parent_rect.y() + parent_rect.height() - self.height() - 35))
+                # Получаем главное окно (QMainWindow), а не виджет вкладки
+                parent_window = self.parent().window()
+                parent_pos = parent_window.pos()
+                parent_size = parent_window.size()
+                
+                new_x = max(parent_pos.x() + 10, min(new_pos.x(), parent_pos.x() + parent_size.width() - self.width() - 10))
+                new_y = max(parent_pos.y() + 60, min(new_pos.y(), parent_pos.y() + parent_size.height() - self.height() - 35))
                 self.move(new_x, new_y)
             else:
                 self.move(new_pos)
@@ -367,11 +395,20 @@ class CustomNewsDialog(QDialog):
 
     def center_on_screen(self):
         if self.parent():
-            parent_rect = self.parent().geometry()
-            x = parent_rect.x() + (parent_rect.width() - self.width()) // 2
-            y = parent_rect.y() + (parent_rect.height() - self.height()) // 2
-            x = max(parent_rect.x() + 10, min(x, parent_rect.x() + parent_rect.width() - self.width() - 10))
-            y = max(parent_rect.y() + 60, min(y, parent_rect.y() + parent_rect.height() - self.height() - 35))
+            # Получаем главное окно (QMainWindow), а не виджет вкладки
+            parent_window = self.parent().window()
+            # Получаем глобальные координаты родительского окна
+            parent_pos = parent_window.pos()
+            parent_size = parent_window.size()
+            
+            # Вычисляем центральную позицию
+            x = parent_pos.x() + (parent_size.width() - self.width()) // 2
+            y = parent_pos.y() + (parent_size.height() - self.height()) // 2
+            
+            # Ограничиваем перемещение в пределах родительского окна
+            x = max(parent_pos.x() + 10, min(x, parent_pos.x() + parent_size.width() - self.width() - 10))
+            y = max(parent_pos.y() + 60, min(y, parent_pos.y() + parent_size.height() - self.height() - 35))
+            
             self.move(x, y)
         else:
             screen = self.screen().geometry()
