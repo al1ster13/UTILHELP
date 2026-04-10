@@ -22,8 +22,10 @@ class ProgramInfoPanel(BaseInfoPanel):
     
     def _get_icon_path(self, logo_name: str) -> Optional[str]:
         """Получить путь к иконке программы"""
-        from resource_path import get_program_image_path
-        return get_program_image_path(logo_name)
+        from logo_manager import get_logo_manager
+        logo_manager = get_logo_manager()
+        # Получаем путь к кэшированному логотипу или локальному fallback
+        return logo_manager.get_cached_logo_path(logo_name)
     
     def _add_custom_info(self, item_data: Dict[str, Any]):
         """Добавить специфичную информацию для программ"""
@@ -382,12 +384,18 @@ class ProgramsTab(QWidget):
         self.title_label.setText(program["name"])
         
         from image_helper import load_program_image
-        pixmap = load_program_image(program["logo"])
+        
+        self.logo_label.setText("📦")
+        
+        def on_logo_loaded(logo_name, pixmap):
+            if pixmap and not pixmap.isNull():
+                scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                self.logo_label.setPixmap(scaled_pixmap)
+        
+        pixmap = load_program_image(program["logo"], callback=on_logo_loaded)
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.logo_label.setPixmap(scaled_pixmap)
-        else:
-            self.logo_label.setText("📦")  
         
         self.category_label.setText(t("info.category", category=program['category']))
         self.desc_label.setText(program["description"])
@@ -631,7 +639,6 @@ class ProgramsTab(QWidget):
                 font-size: 16px;
                 font-weight: bold;
                 outline: none;
-                padding-left: 2px;
             }}
             QPushButton:hover {{ background-color: {c['bg_hover']}; }}
             QPushButton:pressed {{ background-color: {c['border_hover']}; }}
@@ -779,7 +786,6 @@ class ProgramsTab(QWidget):
     
     def display_programs_grid(self):
         """Отображение программ в виде сетки"""
-        # Настраиваем отступы для режима плитки
         self.programs_grid.setVerticalSpacing(50)
         self.programs_grid.setHorizontalSpacing(120)
         
@@ -809,11 +815,9 @@ class ProgramsTab(QWidget):
     
     def display_programs_list(self):
         """Отображение программ в виде списка"""
-        # Настраиваем отступы для режима списка
-        self.programs_grid.setVerticalSpacing(15)  # Уменьшенный отступ между карточками
+        self.programs_grid.setVerticalSpacing(15)  
         self.programs_grid.setHorizontalSpacing(0)
         
-        # Очищаем текущий layout
         for i in reversed(range(self.programs_grid.count())):
             child = self.programs_grid.itemAt(i).widget()
             if child:
@@ -937,16 +941,22 @@ class ProgramsTab(QWidget):
         card_layout.addWidget(top_container)
         
         from image_helper import load_program_image
-        pixmap = load_program_image(program["logo"])
+        
+        logo_label = QLabel("📦")
+        
+        def on_logo_loaded(logo_name, pixmap):
+            if pixmap and not pixmap.isNull():
+                scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                if theme_manager.is_light():
+                    scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
+                logo_label.setPixmap(scaled_pixmap)
+        
+        pixmap = load_program_image(program["logo"], callback=on_logo_loaded)
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            # В светлой теме перекрашиваем белые иконки в тёмный цвет
             if theme_manager.is_light():
                 scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
-            logo_label = QLabel()
             logo_label.setPixmap(scaled_pixmap)
-        else:
-            logo_label = QLabel("📦")
         
         logo_container = QWidget()
         logo_container.setFixedSize(200, 100)  
@@ -1031,12 +1041,23 @@ class ProgramsTab(QWidget):
         card_layout.setSpacing(15)
 
         from image_helper import load_program_image
-        pixmap = load_program_image(program["logo"])
+        
+        logo_label = QLabel("📦")
+        logo_label.setFixedSize(60, 60)
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        def on_logo_loaded(logo_name, pixmap):
+            if pixmap and not pixmap.isNull():
+                scaled_pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                if theme_manager.is_light():
+                    scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
+                logo_label.setPixmap(scaled_pixmap)
+        
+        pixmap = load_program_image(program["logo"], callback=on_logo_loaded)
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             if theme_manager.is_light():
                 scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
-            logo_label = QLabel()
             logo_label.setPixmap(scaled_pixmap)
         else:
             logo_label = QLabel("📦")
@@ -1247,7 +1268,6 @@ class ProgramsTab(QWidget):
             }}
         """)
         
-        # Обновляем заголовок
         if hasattr(self, 'title_label'):
             self.title_label.setStyleSheet(f"""
                 QLabel {{
@@ -1274,7 +1294,6 @@ class ProgramsTab(QWidget):
                 QLineEdit:hover {{ border: 1px solid {c['border_hover']}; }}
             """)
         
-        # Обновляем стили скроллбара
         if hasattr(self, 'scroll_area'):
             self.scroll_area.setStyleSheet(f"""
                 QScrollArea {{
@@ -1318,27 +1337,36 @@ class ProgramsTab(QWidget):
             QPushButton:hover {{ background-color: {c['bg_hover']}; }}
             QPushButton:pressed {{ background-color: {c['border_hover']}; }}
         """
+        
+        btn_style_with_padding = f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
+                border: none;
+                border-radius: 8px;
+                color: {c['text_primary']};
+                font-size: 16px;
+                font-weight: bold;
+                outline: none;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['border_hover']}; }}
+        """
+        
         if hasattr(self, 'scan_button'):
             self.scan_button.setStyleSheet(btn_style)
-            # Обновляем иконку сканирования
             self.update_scan_button_icon(False)
         if hasattr(self, 'view_mode_button'):
-            self.view_mode_button.setStyleSheet(btn_style)
-            # Обновляем иконку режима просмотра
+            self.view_mode_button.setStyleSheet(btn_style_with_padding)
             self.update_view_mode_button()
         
-        # Обновляем тему category_filter
         if hasattr(self, 'category_filter') and hasattr(self.category_filter, 'apply_theme'):
             self.category_filter.apply_theme()
         
-        # Обновляем тему info_panel
         if hasattr(self, 'info_panel') and hasattr(self.info_panel, 'apply_theme'):
             self.info_panel.apply_theme()
         
-        # Перерисовываем программы с новой темой
         self.display_programs()
         
-        # Принудительно обновляем все виджеты
         self.update()
         if hasattr(self, 'programs_content'):
             self.programs_content.update()
@@ -1347,12 +1375,10 @@ class ProgramsTab(QWidget):
         """Переключение режима просмотра между плиткой и списком"""
         from settings_manager import settings_manager
         
-        # Переключаем режим
         self.view_mode = "list" if self.view_mode == "grid" else "grid"
         
         settings_manager.set_setting("view_mode", self.view_mode)
         
-        # Синхронизируем с drivers_tab если он существует
         if hasattr(self, 'main_window') and hasattr(self.main_window, 'drivers_tab'):
             self.main_window.drivers_tab.sync_view_mode(self.view_mode)
         
@@ -1364,26 +1390,23 @@ class ProgramsTab(QWidget):
     def update_view_mode_button(self):
         """Обновление иконки и подсказки кнопки режима просмотра"""
         from resource_path import get_icon_path
-        from PyQt6.QtGui import QIcon, QPixmap, QPainter
-        from PyQt6.QtCore import QSize, Qt
+        from PyQt6.QtGui import QIcon, QPixmap
+        from PyQt6.QtCore import QSize
         from theme_manager import theme_manager, colorize_pixmap
 
         icon_name = "iconlist.png" if self.view_mode == "grid" else "icontab.png"
         icon_path = get_icon_path(icon_name)
         if icon_path:
             original_pixmap = QPixmap(icon_path)
-            centered_pixmap = QPixmap(35, 35)
-            centered_pixmap.fill(Qt.GlobalColor.transparent)
-            scaled_pixmap = original_pixmap.scaled(27, 27, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            if theme_manager.is_light():
-                scaled_pixmap = colorize_pixmap(scaled_pixmap, theme_manager.colors['text_secondary'])
-            painter = QPainter(centered_pixmap)
-            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-            painter.drawPixmap((35 - scaled_pixmap.width()) // 2, (35 - scaled_pixmap.height()) // 2, scaled_pixmap)
-            painter.end()
-            self.view_mode_button.setIcon(QIcon(centered_pixmap))
-            self.view_mode_button.setIconSize(QSize(35, 35))
-            self.view_mode_button.setText("")
+            if not original_pixmap.isNull():
+                scaled_pixmap = original_pixmap.scaled(21, 21, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                if theme_manager.is_light():
+                    scaled_pixmap = colorize_pixmap(scaled_pixmap, theme_manager.colors['text_secondary'])
+                self.view_mode_button.setIcon(QIcon(scaled_pixmap))
+                self.view_mode_button.setIconSize(QSize(21, 21))
+                self.view_mode_button.setText("")
+            else:
+                self.view_mode_button.setText("☰" if self.view_mode == "grid" else "⊞")
         else:
             self.view_mode_button.setText("☰" if self.view_mode == "grid" else "⊞")
 
@@ -1460,7 +1483,6 @@ class ProgramsTab(QWidget):
     def cleanup(self):
         """Очистка ресурсов при закрытии вкладки"""
         try:
-            # Останавливаем фоновый сканер если он запущен
             if self.background_scanner and self.background_scanner.isRunning():
                 self.background_scanner.quit()
                 self.background_scanner.wait(3000)  # Ждем максимум 3 секунды
@@ -1493,7 +1515,6 @@ class ProgramsTab(QWidget):
         if hasattr(self, 'category_filter'):
             current_data = self.category_filter.currentData()
             
-            # Пересоздаем список категорий с новыми переводами
             self.category_filter.clear()
             self.category_filter.addItem(t("categories.all"), "")
             self.category_filter.addItem(t("categories.favorites"), "favorites")
@@ -1511,13 +1532,11 @@ class ProgramsTab(QWidget):
                 translated_category = translate_category(category)
                 self.category_filter.addItem(translated_category, category)
             
-            # Восстанавливаем выбранный элемент
             for i, (text, data) in enumerate(self.category_filter.items):
                 if data == current_data:
                     self.category_filter.setCurrentIndex(i)
                     break
         
-        # Перерисовываем карточки программ
         self.display_programs()
         
         if hasattr(self, 'info_panel') and self.info_panel.isVisible():
