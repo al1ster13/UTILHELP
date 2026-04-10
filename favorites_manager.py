@@ -7,7 +7,6 @@ class FavoritesManager:
     """Менеджер для работы с избранными программами и драйверами"""
     
     def __init__(self):
-        # Получаем путь к папке данных
         appdata = os.environ.get('APPDATA')
         if appdata:
             data_dir = os.path.join(appdata, 'UTILHELP', 'data')
