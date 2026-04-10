@@ -41,7 +41,6 @@ class NotificationManager:
             return style == "custom"
         except Exception as e:
             log_error(f"Ошибка проверки настроек уведомлений: {e}")
-            # По умолчанию используем кастомные
             return True
     
     def setup_tray_icon(self):
@@ -143,7 +142,6 @@ class NotificationManager:
                 toast_manager.show_download_notification(program_name, success, item_type)
                 return
         
-        # Используем системные уведомления
         if not self.tray_icon:
             return
             
@@ -187,7 +185,6 @@ class NotificationManager:
                 toast_manager.show_installation_notification(program_name, success)
                 return
         
-        # Используем системные уведомления
         if not self.tray_icon or not QSystemTrayIcon.supportsMessages():
             return
         
@@ -222,7 +219,6 @@ class NotificationManager:
                 toast_manager.show_update_notification(version)
                 return
         
-        # Используем системные уведомления
         if not self.tray_icon or not QSystemTrayIcon.supportsMessages():
             return
         
