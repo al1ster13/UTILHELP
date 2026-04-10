@@ -22,7 +22,7 @@ from loading_widget import LoadingWidget, NoInternetWidget
 from scroll_helper import configure_scroll_area
 from notification_manager import get_notification_manager
 from logger import log_info, log_error, log_warning, log_debug
-from ui.settings.toggle_switch import ToggleSwitch, DisabledToggleSwitch
+from ui.settings.toggle_switch import ToggleSwitch
 from ui.effects.snow_widget import SnowWidget
 from ui.settings.settings_tab_full import SettingsTab
 from localization import t
@@ -57,11 +57,14 @@ class MainWindow(QMainWindow):
         
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        
-        self.central_widget = QWidget()  
+
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
+        self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
-        self.central_widget.setStyleSheet("""
-            background-color: #1a1a1a;
+        self.central_widget.setStyleSheet(f"""
+            background-color: {c['bg_main']};
             border-radius: 12px;
         """)
         
@@ -70,12 +73,12 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(0)
         
         self.title_bar = QFrame()
-        self.title_bar.setFixedHeight(35)  
-        self.title_bar.setStyleSheet("""
-            QFrame {
-                background-color: #2d2d2d;
+        self.title_bar.setFixedHeight(35)
+        self.title_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['bg_titlebar']};
                 border-radius: 10px;
-            }
+            }}
         """)
         
         title_bar_layout = QHBoxLayout(self.title_bar)
@@ -90,6 +93,7 @@ class MainWindow(QMainWindow):
         left_layout.setSpacing(5)
         
         logo_label = QLabel()
+        self.logo_label = logo_label  # Сохраняем ссылку
         pixmap = self.load_icon_pixmap("utilhelplogo24.png")
         if not pixmap.isNull():
             logo_label.setPixmap(pixmap)
@@ -110,14 +114,14 @@ class MainWindow(QMainWindow):
         title_bar_layout.addWidget(left_container)
         
         self.title_label = QLabel("UTILHELP")
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 letter-spacing: 2px;
-            }
+            }}
         """)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  
         title_bar_layout.addWidget(self.title_label)
@@ -142,11 +146,11 @@ class MainWindow(QMainWindow):
         
         self.settings_button.setFixedSize(30, 25)
         self.settings_button.clicked.connect(self.show_settings)
-        self.settings_button.setStyleSheet("""
-            QPushButton {
-                background-color: #404040;
+        self.settings_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
                 border: none;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 border-radius: 4px;
@@ -155,17 +159,17 @@ class MainWindow(QMainWindow):
                 padding: 0px;
                 line-height: 26px;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QPushButton:focus {
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+            }}
+            QPushButton:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
+            QPushButton:focus {{
                 outline: none;
                 border: none;
-            }
+            }}
         """)
         right_layout.addWidget(self.settings_button)
         
@@ -174,20 +178,20 @@ class MainWindow(QMainWindow):
         minimize_button = QPushButton()
         minimize_button.setFixedSize(30, 25)  
         minimize_button.clicked.connect(self.showMinimized)
+        self.minimize_button = minimize_button  # Сохраняем ссылку
         
-        from resource_path import get_icon_path
-        minimize_icon_path = get_icon_path("minimizemenu.png")
-        if minimize_icon_path:
-            minimize_button.setIcon(QIcon(minimize_icon_path))
+        minimize_pixmap = self.load_icon_pixmap("minimizemenu.png")
+        if minimize_pixmap and not minimize_pixmap.isNull():
+            minimize_button.setIcon(QIcon(minimize_pixmap))
             minimize_button.setIconSize(QSize(16, 16))
             minimize_button.setFlat(True)  
         else:
             minimize_button.setText("—")  
-        minimize_button.setStyleSheet("""
-            QPushButton {
-                background-color: #404040;
+        minimize_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
                 border: none;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 border-radius: 4px;
@@ -196,17 +200,17 @@ class MainWindow(QMainWindow):
                 padding: 0px;
                 line-height: 26px;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QPushButton:focus {
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+            }}
+            QPushButton:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
+            QPushButton:focus {{
                 outline: none;
                 border: none;
-            }
+            }}
         """)
         right_layout.addWidget(minimize_button)
         
@@ -214,18 +218,18 @@ class MainWindow(QMainWindow):
         self.maximize_button.setFixedSize(30, 25)  
         self.maximize_button.clicked.connect(self.toggle_maximize)
         
-        unwrap_icon_path = get_icon_path("unwrapmenu.png")
-        if unwrap_icon_path:
-            self.maximize_button.setIcon(QIcon(unwrap_icon_path))
+        maximize_pixmap = self.load_icon_pixmap("unwrapmenu.png")
+        if maximize_pixmap and not maximize_pixmap.isNull():
+            self.maximize_button.setIcon(QIcon(maximize_pixmap))
             self.maximize_button.setIconSize(QSize(16, 16))
             self.maximize_button.setFlat(True)  
         else:
             self.maximize_button.setText("☐")  
-        self.maximize_button.setStyleSheet("""
-            QPushButton {
-                background-color: #404040;
+        self.maximize_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
                 border: none;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 border-radius: 4px;
@@ -234,36 +238,38 @@ class MainWindow(QMainWindow):
                 padding: 0px;
                 line-height: 26px;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QPushButton:focus {
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+            }}
+            QPushButton:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
+            QPushButton:focus {{
                 outline: none;
                 border: none;
-            }
+            }}
         """)
         right_layout.addWidget(self.maximize_button)
         
         close_button = QPushButton()
         close_button.setFixedSize(30, 25)  
         close_button.clicked.connect(self.close)
+        self.close_button = close_button  # Сохраняем ссылку
         
-        close_icon_path = get_icon_path("closemenu.png")
-        if close_icon_path:
-            close_button.setIcon(QIcon(close_icon_path))
+        close_pixmap = self.load_icon_pixmap("closemenu.png")
+        if close_pixmap and not close_pixmap.isNull():
+            close_button.setIcon(QIcon(close_pixmap))
+            close_button.setIconSize(QSize(16, 16))
             close_button.setFlat(True)  
         else:
             close_button.setText("✕")  
         
-        close_button.setStyleSheet("""
-            QPushButton {
-                background-color: #404040;
+        close_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
                 border: none;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 border-radius: 4px;
@@ -273,15 +279,15 @@ class MainWindow(QMainWindow):
                 line-height: 26px;
                 outline: none;
                 qproperty-flat: true;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #e74c3c;
                 color: #ffffff;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #c0392b;
-            }
-            QPushButton:focus {
+            }}
+            QPushButton:focus {{
                 outline: none;
                 border: none;
         """)
@@ -291,23 +297,22 @@ class MainWindow(QMainWindow):
         
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
-        self.tab_widget.setStyleSheet("""
-            QTabWidget::pane {
+        self.tab_widget.setStyleSheet(f"""
+            QTabWidget::pane {{
                 border: none;
-                background-color: #1a1a1a;
+                background-color: {c['bg_main']};
                 border-bottom-left-radius: 10px;
                 border-bottom-right-radius: 10px;
-            }
-            QTabBar {
+            }}
+            QTabBar {{
                 margin-left: -2px;
-            }
-            QTabBar::tab:first {
+            }}
+            QTabBar::tab:first {{
                 margin-left: 0px;
-            }
-            QTabBar::tab {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #404040, stop: 1 #2d2d2d);
-                color: #cccccc;
+            }}
+            QTabBar::tab {{
+                background-color: {c['bg_button']};
+                color: {c['text_secondary']};
                 padding: 15px 30px;
                 margin: 3px 2px 3px 2px;
                 border-radius: 12px;
@@ -315,33 +320,32 @@ class MainWindow(QMainWindow):
                 font-size: 14px;
                 font-weight: bold;
                 min-width: 120px;
-                border: 2px solid #555555;
-            }
-            QTabBar::tab:selected {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #555555, stop: 1 #404040);
-                color: #ffffff;
-                border: 2px solid #666666;
-            }
-            QTabBar::tab:hover:!selected {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #4a4a4a, stop: 1 #353535);
-                color: #ffffff;
-                border: 2px solid #5a5a5a;
-            }
-            QTabBar::tab:pressed {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #353535, stop: 1 #2a2a2a);
-            }
+                border: 2px solid {c['border']};
+            }}
+            QTabBar::tab:selected {{
+                background-color: {c['bg_hover']};
+                color: {c['text_primary']};
+                border: 2px solid {c['border_hover']};
+            }}
+            QTabBar::tab:hover:!selected {{
+                background-color: {c['bg_hover']};
+                color: {c['text_primary']};
+                border: 2px solid {c['border_hover']};
+            }}
+            QTabBar::tab:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
         """)
         
         self.news_tab = NewsTab()
         self.tab_widget.addTab(self.news_tab, t("tabs.news"))
         
         self.programs_tab = ProgramsTab()
+        self.programs_tab.main_window = self
         self.tab_widget.addTab(self.programs_tab, t("tabs.programs"))
         
         self.drivers_tab = DriversTab()
+        self.drivers_tab.main_window = self
         self.tab_widget.addTab(self.drivers_tab, t("tabs.drivers"))
         
         self.data_loaded = False
@@ -360,27 +364,31 @@ class MainWindow(QMainWindow):
         self.tab_widget.mousePressEvent = self.tab_widget_mouse_press_event
         
         main_layout.addWidget(self.tab_widget)
+
+        # Подписываем все вкладки на смену темы
+        from theme_manager import theme_manager as _tm
+        _tm.add_listener(self.apply_theme)
         
         self.status_bar = QFrame()
-        self.status_bar.setFixedHeight(25) 
-        self.status_bar.setStyleSheet("""
-            QFrame {
-                background-color: #2d2d2d;
+        self.status_bar.setFixedHeight(25)
+        self.status_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['bg_titlebar']};
                 border-radius: 10px;
-            }
+            }}
         """)
-        
+
         status_layout = QHBoxLayout(self.status_bar)
         status_layout.setContentsMargins(15, 0, 8, 0)
-        
+
         version_text = self.get_app_version()
         self.version_label = QLabel(t("app.version", version=version_text))
-        self.version_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        self.version_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 10px;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         status_layout.addWidget(self.version_label)
         status_layout.addStretch()
@@ -395,12 +403,12 @@ class MainWindow(QMainWindow):
         else:
             self.downloads_button.setText(f"↓ {t('main_window.downloads_button')}")
         
-        self.downloads_button.setFixedHeight(20)  
+        self.downloads_button.setFixedHeight(20)
         self.downloads_button.clicked.connect(self.toggle_downloads_panel)
-        self.downloads_button.setStyleSheet("""
-            QPushButton {
-                background-color: #404040;
-                color: #ffffff;
+        self.downloads_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
+                color: {c['text_primary']};
                 border: none;
                 border-radius: 4px;
                 font-size: 12px;
@@ -409,17 +417,17 @@ class MainWindow(QMainWindow):
                 margin-right: 0px;
                 margin-top: 1px;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-            }
-            QPushButton:pressed {
-                background-color: #353535;
-            }
-            QPushButton:focus {
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+            }}
+            QPushButton:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
+            QPushButton:focus {{
                 outline: none;
                 border: none;
-            }
+            }}
         """)
         status_layout.addWidget(self.downloads_button)
         
@@ -539,16 +547,22 @@ class MainWindow(QMainWindow):
 
     def load_icon_pixmap(self, icon_name, size=None):
         """Загрузить иконку с правильным путем для exe"""
+        from theme_manager import theme_manager, colorize_pixmap
+
         icon_path = get_icon_path(icon_name)
-        
+
         if icon_path:
             pixmap = QPixmap(icon_path)
-            
+
             if not pixmap.isNull() and size:
-                scaled = pixmap.scaled(size[0], size[1], Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                return scaled
+                pixmap = pixmap.scaled(size[0], size[1], Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+
+            # В светлой теме перекрашиваем белые иконки UI
+            if not pixmap.isNull() and theme_manager.is_light():
+                pixmap = colorize_pixmap(pixmap, theme_manager.colors['text_secondary'])
+
             return pixmap
-        
+
         return QPixmap()  
 
     def update_snow_widget_size(self):
@@ -608,9 +622,9 @@ class MainWindow(QMainWindow):
 
     def on_fullscreen_animation_finished(self):
         """Завершение анимации разворачивания"""
-        unwrap_icon_path = get_icon_path("unwrapmenu.png")
-        if unwrap_icon_path:
-            self.maximize_button.setIcon(QIcon(unwrap_icon_path))
+        unwrap_pixmap = self.load_icon_pixmap("unwrapmenu.png")
+        if unwrap_pixmap and not unwrap_pixmap.isNull():
+            self.maximize_button.setIcon(QIcon(unwrap_pixmap))
         else:
             self.maximize_button.setText("☐")
         self.is_maximized = True
@@ -621,9 +635,9 @@ class MainWindow(QMainWindow):
     def on_normal_animation_finished(self):
         """Завершение анимации сворачивания"""
         self.setFixedSize(self.normal_size[0], self.normal_size[1])
-        unwrap_icon_path = get_icon_path("unwrapmenu.png")
-        if unwrap_icon_path:
-            self.maximize_button.setIcon(QIcon(unwrap_icon_path))
+        unwrap_pixmap = self.load_icon_pixmap("unwrapmenu.png")
+        if unwrap_pixmap and not unwrap_pixmap.isNull():
+            self.maximize_button.setIcon(QIcon(unwrap_pixmap))
         else:
             self.maximize_button.setText("☐")
         self.is_maximized = False
@@ -633,40 +647,287 @@ class MainWindow(QMainWindow):
 
     def update_window_style(self, is_maximized):
         """Обновить стиль окна"""
-        if is_maximized:
-            self.central_widget.setStyleSheet("""
-                background-color: #1a1a1a;
-                border-radius: 0px;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        radius = "0px" if is_maximized else "12px"
+        self.central_widget.setStyleSheet(f"""
+            background-color: {c['bg_main']};
+            border-radius: {radius};
+        """)
+        self.title_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['bg_titlebar']};
+                border-radius: 10px;
+            }}
+        """)
+        self.status_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['bg_titlebar']};
+                border-radius: 10px;
+            }}
+        """)
+
+    def apply_theme(self):
+        """Применить текущую тему ко всем элементам главного окна"""
+        from theme_manager import theme_manager
+        from logger import log_info
+        c = theme_manager.colors
+        
+        log_info("MainWindow.apply_theme вызван")
+
+        # Перезагружаем логотип
+        if hasattr(self, 'logo_label'):
+            logo_pixmap = self.load_icon_pixmap("utilhelplogo24.png")
+            if logo_pixmap and not logo_pixmap.isNull():
+                self.logo_label.setPixmap(logo_pixmap)
+
+        # Перезагружаем иконки с учетом темы
+        if hasattr(self, 'settings_button'):
+            settings_pixmap = self.load_icon_pixmap("settings.png")
+            if settings_pixmap and not settings_pixmap.isNull():
+                self.settings_button.setIcon(QIcon(settings_pixmap))
+        
+        if hasattr(self, 'minimize_button'):
+            minimize_pixmap = self.load_icon_pixmap("minimizemenu.png")
+            if minimize_pixmap and not minimize_pixmap.isNull():
+                self.minimize_button.setIcon(QIcon(minimize_pixmap))
+                self.minimize_button.setIconSize(QSize(16, 16))
+            self.minimize_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['bg_button']};
+                    border: none;
+                    color: {c['text_primary']};
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 4px;
+                    margin: 2px;
+                    text-align: center;
+                    padding: 0px;
+                    line-height: 26px;
+                    outline: none;
+                }}
+                QPushButton:hover {{
+                    background-color: {c['bg_hover']};
+                }}
+                QPushButton:pressed {{
+                    background-color: {c['bg_pressed']};
+                }}
+                QPushButton:focus {{
+                    outline: none;
+                    border: none;
+                }}
             """)
-            self.title_bar.setStyleSheet("""
-                QFrame {
-                    background-color: #2d2d2d;
-                    border-radius: 10px;
-                }
+            self.minimize_button.update()
+        
+        if hasattr(self, 'maximize_button'):
+            maximize_pixmap = self.load_icon_pixmap("unwrapmenu.png")
+            if maximize_pixmap and not maximize_pixmap.isNull():
+                self.maximize_button.setIcon(QIcon(maximize_pixmap))
+                self.maximize_button.setIconSize(QSize(16, 16))
+            self.maximize_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['bg_button']};
+                    border: none;
+                    color: {c['text_primary']};
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 4px;
+                    margin: 2px;
+                    text-align: center;
+                    padding: 0px;
+                    line-height: 26px;
+                    outline: none;
+                }}
+                QPushButton:hover {{
+                    background-color: {c['bg_hover']};
+                }}
+                QPushButton:pressed {{
+                    background-color: {c['bg_pressed']};
+                }}
+                QPushButton:focus {{
+                    outline: none;
+                    border: none;
+                }}
             """)
-            self.status_bar.setStyleSheet("""
-                QFrame {
-                    background-color: #2d2d2d;
-                    border-radius: 10px;
-                }
+            self.maximize_button.update()
+        
+        if hasattr(self, 'close_button'):
+            close_pixmap = self.load_icon_pixmap("closemenu.png")
+            if close_pixmap and not close_pixmap.isNull():
+                self.close_button.setIcon(QIcon(close_pixmap))
+                self.close_button.setIconSize(QSize(16, 16))
+            self.close_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['bg_button']};
+                    border: none;
+                    color: {c['text_primary']};
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 4px;
+                    margin: 2px;
+                    text-align: center;
+                    padding: 0px;
+                    line-height: 26px;
+                    outline: none;
+                    qproperty-flat: true;
+                }}
+                QPushButton:hover {{
+                    background-color: #e74c3c;
+                    color: #ffffff;
+                }}
+                QPushButton:pressed {{
+                    background-color: #c0392b;
+                }}
+                QPushButton:focus {{
+                    outline: none;
+                    border: none;
+                }}
             """)
-        else:
-            self.central_widget.setStyleSheet("""
-                background-color: #1a1a1a;
+            self.close_button.update()
+        
+        if hasattr(self, 'downloads_button'):
+            downloads_pixmap = self.load_icon_pixmap("button download.png")
+            if downloads_pixmap and not downloads_pixmap.isNull():
+                self.downloads_button.setIcon(QIcon(downloads_pixmap))
+
+        self.central_widget.setStyleSheet(f"""
+            background-color: {c['bg_main']};
+            border-radius: {'0px' if self.is_maximized else '12px'};
+        """)
+        self.title_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['bg_titlebar']};
+                border-radius: 10px;
+            }}
+        """)
+        self.status_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {c['bg_titlebar']};
+                border-radius: 10px;
+            }}
+        """)
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
+                font-size: 16px;
+                font-weight: bold;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                letter-spacing: 2px;
+            }}
+        """)
+        self.version_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
+                font-size: 10px;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }}
+        """)
+        btn_style = f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
+                border: none;
+                color: {c['text_primary']};
+                font-size: 16px;
+                font-weight: bold;
+                border-radius: 4px;
+                margin: 2px;
+                outline: none;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['bg_pressed']}; }}
+            QPushButton:focus {{ outline: none; border: none; }}
+        """
+        self.settings_button.setStyleSheet(btn_style)
+        self.maximize_button.setStyleSheet(btn_style)
+        self.downloads_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
+                color: {c['text_primary']};
+                border: none;
+                border-radius: 4px;
+                font-size: 12px;
+                padding: 2px 8px;
+                outline: none;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['bg_pressed']}; }}
+            QPushButton:focus {{ outline: none; border: none; }}
+        """)
+        self.tab_widget.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: none;
+                background-color: {c['bg_main']};
+                border-bottom-left-radius: 10px;
+                border-bottom-right-radius: 10px;
+            }}
+            QTabBar {{
+                margin-left: -2px;
+            }}
+            QTabBar::tab:first {{
+                margin-left: 0px;
+            }}
+            QTabBar::tab {{
+                background-color: {c['bg_button']};
+                color: {c['text_secondary']};
+                padding: 15px 30px;
+                margin: 3px 2px 3px 2px;
                 border-radius: 12px;
-            """)
-            self.title_bar.setStyleSheet("""
-                QFrame {
-                    background-color: #2d2d2d;
-                    border-radius: 10px;
-                }
-            """)
-            self.status_bar.setStyleSheet("""
-                QFrame {
-                    background-color: #2d2d2d;
-                    border-radius: 10px;
-                }
-            """)
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 14px;
+                font-weight: bold;
+                min-width: 120px;
+                border: 2px solid {c['border']};
+            }}
+            QTabBar::tab:selected {{
+                background-color: {c['bg_hover']};
+                color: {c['text_primary']};
+                border: 2px solid {c['border_hover']};
+            }}
+            QTabBar::tab:hover:!selected {{
+                background-color: {c['bg_hover']};
+                color: {c['text_primary']};
+                border: 2px solid {c['border_hover']};
+            }}
+            QTabBar::tab:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
+        """)
+
+        # Перезагружаем вкладку настроек
+        if hasattr(self, 'settings_tab') and hasattr(self.settings_tab, 'apply_theme'):
+            self.settings_tab.apply_theme()
+
+        # Перерисовываем все вкладки с локальными стилями
+        self._refresh_all_tabs()
+        
+        # Обновляем панель загрузок если она существует
+        self.update_downloads_panel_theme()
+
+    def _refresh_all_tabs(self):
+        """Перерисовать все вкладки после смены темы"""
+        # NewsTab
+        if hasattr(self, 'news_tab') and self.news_tab:
+            if hasattr(self.news_tab, 'apply_theme'):
+                self.news_tab.apply_theme()
+            elif hasattr(self.news_tab, 'load_news_from_data'):
+                self.news_tab.load_news_from_data()
+
+        # ProgramsTab
+        if hasattr(self, 'programs_tab') and self.programs_tab:
+            if hasattr(self.programs_tab, 'apply_theme'):
+                self.programs_tab.apply_theme()
+
+        # DriversTab
+        if hasattr(self, 'drivers_tab') and self.drivers_tab:
+            if hasattr(self.drivers_tab, 'apply_theme'):
+                self.drivers_tab.apply_theme()
+
+        # DownloadsTab
+        if hasattr(self, 'downloads_tab') and self.downloads_tab:
+            if hasattr(self.downloads_tab, 'apply_theme'):
+                self.downloads_tab.apply_theme()
+            elif hasattr(self.downloads_tab, 'load_downloads'):
+                self.downloads_tab.load_downloads()
 
     def center_window(self):
         """Центрировать окно на экране"""
@@ -842,13 +1103,16 @@ class MainWindow(QMainWindow):
 
     def create_downloads_panel(self):
         """Создание панели загрузок"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        
         self.downloads_panel = QWidget(self)
-        self.downloads_panel.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
-                border: 2px solid #555555;
+        self.downloads_panel.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_secondary']};
+                border: 2px solid {c['border']};
                 border-radius: 15px;
-            }
+            }}
         """)
         
         layout = QVBoxLayout(self.downloads_panel)
@@ -857,34 +1121,33 @@ class MainWindow(QMainWindow):
         
         header_layout = QHBoxLayout()
         
-        title_label = QLabel(t("main_window.downloads_button"))
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.downloads_panel_title = QLabel(t("main_window.downloads_button"))
+        self.downloads_panel_title.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
-        header_layout.addWidget(title_label)
+        header_layout.addWidget(self.downloads_panel_title)
         header_layout.addStretch()
         
-        clear_btn = QPushButton("Очистить")
-        clear_btn.setFixedSize(80, 25)
-        clear_btn.clicked.connect(self.clear_downloads_history)
+        self.downloads_clear_btn = QPushButton("Очистить")
+        self.downloads_clear_btn.setFixedSize(100, 25)
+        self.downloads_clear_btn.clicked.connect(self.clear_downloads_history)
         
         from resource_path import get_icon_path
         from PyQt6.QtGui import QIcon
         from PyQt6.QtCore import QSize
         
-        delete_icon_path = get_icon_path("delete.png")
-        if delete_icon_path:
-            delete_icon = QIcon(delete_icon_path)
-            clear_btn.setIcon(delete_icon)
-            clear_btn.setIconSize(QSize(12, 12))
+        delete_pixmap = self.load_icon_pixmap("delete.png")
+        if delete_pixmap and not delete_pixmap.isNull():
+            self.downloads_clear_btn.setIcon(QIcon(delete_pixmap))
+            self.downloads_clear_btn.setIconSize(QSize(12, 12))
         
-        clear_btn.setStyleSheet("""
+        self.downloads_clear_btn.setStyleSheet("""
             QPushButton {
                 background-color: rgba(244, 67, 54, 0.1);
                 color: #f44336;
@@ -902,7 +1165,7 @@ class MainWindow(QMainWindow):
                 border: 1px solid #f44336;
             }
         """)
-        header_layout.addWidget(clear_btn)
+        header_layout.addWidget(self.downloads_clear_btn)
         
         layout.addLayout(header_layout)
         
@@ -913,50 +1176,51 @@ class MainWindow(QMainWindow):
         
         configure_scroll_area(scroll_area)
         
-        scroll_area.setStyleSheet("""
-            QScrollArea {
+        self.downloads_scroll_area = scroll_area
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 background: transparent;
                 border: none;
-            }
-            QScrollBar:vertical {
-                background-color: #2d2d2d;
+            }}
+            QScrollBar:vertical {{
+                background-color: {c['bg_secondary']};
                 width: 16px;
                 margin: 0px;
                 border: none;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['border']};
                 border-radius: 8px;
                 min-height: 30px;
                 margin: 2px;
                 border: none;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: #777777;
-            }
-            QScrollBar::add-line:vertical {
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['border_hover']};
+            }}
+            QScrollBar::handle:vertical:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
+            QScrollBar::add-line:vertical {{
                 height: 0px;
                 width: 0px;
                 border: none;
                 background: transparent;
-            }
-            QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::sub-line:vertical {{
                 height: 0px;
                 width: 0px;
                 border: none;
                 background: transparent;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                 background: none;
-            }
-            QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+            }}
+            QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {{
                 width: 0px;
                 height: 0px;
                 background: transparent;
-            }
+            }}
         """)
         
         self.downloads_container = QWidget()
@@ -982,6 +1246,89 @@ class MainWindow(QMainWindow):
         self.downloads_layout.addStretch()
         scroll_area.setWidget(self.downloads_container)
         layout.addWidget(scroll_area)
+    
+    def update_downloads_panel_theme(self):
+        """Обновить тему панели загрузок"""
+        if not self.downloads_panel:
+            return
+        
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        
+        # Обновляем основной стиль панели
+        self.downloads_panel.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_secondary']};
+                border: 2px solid {c['border']};
+                border-radius: 15px;
+            }}
+        """)
+        
+        # Обновляем заголовок
+        if hasattr(self, 'downloads_panel_title'):
+            self.downloads_panel_title.setStyleSheet(f"""
+                QLabel {{
+                    color: {c['text_primary']};
+                    font-size: 16px;
+                    font-weight: bold;
+                    background: transparent;
+                    border: none;
+                }}
+            """)
+        
+        # Обновляем иконку кнопки очистки
+        if hasattr(self, 'downloads_clear_btn'):
+            delete_pixmap = self.load_icon_pixmap("delete.png")
+            if delete_pixmap and not delete_pixmap.isNull():
+                self.downloads_clear_btn.setIcon(QIcon(delete_pixmap))
+        
+        # Обновляем скроллбар
+        if hasattr(self, 'downloads_scroll_area'):
+            self.downloads_scroll_area.setStyleSheet(f"""
+                QScrollArea {{
+                    background: transparent;
+                    border: none;
+                }}
+                QScrollBar:vertical {{
+                    background-color: {c['bg_secondary']};
+                    width: 16px;
+                    margin: 0px;
+                    border: none;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {c['border']};
+                    border-radius: 8px;
+                    min-height: 30px;
+                    margin: 2px;
+                    border: none;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {c['border_hover']};
+                }}
+                QScrollBar::handle:vertical:pressed {{
+                    background-color: {c['bg_pressed']};
+                }}
+                QScrollBar::add-line:vertical {{
+                    height: 0px;
+                    width: 0px;
+                    border: none;
+                    background: transparent;
+                }}
+                QScrollBar::sub-line:vertical {{
+                    height: 0px;
+                    width: 0px;
+                    border: none;
+                    background: transparent;
+                }}
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                    background: none;
+                }}
+                QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {{
+                    width: 0px;
+                    height: 0px;
+                    background: transparent;
+                }}
+            """)
     
     def clear_downloads_history(self):
         """Очистить историю загрузок"""
@@ -1977,6 +2324,10 @@ class DownloadItem:
     def closeEvent(self, event):
         """Обработка закрытия приложения"""
         try:
+            # Очищаем менеджер логотипов
+            from logo_manager import cleanup_logo_manager
+            cleanup_logo_manager()
+            
             # Очищаем все вкладки
             if hasattr(self, 'programs_tab') and self.programs_tab:
                 self.programs_tab.cleanup()
