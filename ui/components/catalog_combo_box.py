@@ -24,6 +24,9 @@ class CatalogComboBox(QWidget):
     
     def _setup_ui(self):
         """Настройка UI компонента"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
@@ -32,26 +35,26 @@ class CatalogComboBox(QWidget):
         self.button.setFixedHeight(35)
         self.button.setFixedWidth(200)
         self.button.clicked.connect(self.toggle_dropdown)
-        self.button.setStyleSheet("""
-            QPushButton {
-                background-color: #2d2d2d;
+        self.button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_secondary']};
                 border: 1px solid transparent;
                 border-radius: 8px;
                 padding: 8px 15px;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 14px;
                 text-align: left;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #353535;
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
                 border: 1px solid transparent;
-            }
-            QPushButton:focus {
-                background-color: #353535;
+            }}
+            QPushButton:focus {{
+                background-color: {c['bg_hover']};
                 border: 1px solid transparent;
                 outline: none;
-            }
+            }}
         """)
         
         button_container = QWidget()
@@ -63,13 +66,13 @@ class CatalogComboBox(QWidget):
         self.arrow_label = QLabel("▼")
         self.arrow_label.setFixedSize(20, 35)
         self.arrow_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.arrow_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.arrow_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 10px;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         self.arrow_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.arrow_label.setParent(button_container)
@@ -88,27 +91,27 @@ class CatalogComboBox(QWidget):
         
         configure_scroll_area(self.dropdown)
         
-        self.dropdown.setStyleSheet("""
-            QListWidget {
-                background-color: #2d2d2d;
+        self.dropdown.setStyleSheet(f"""
+            QListWidget {{
+                background-color: {c['bg_secondary']};
                 border: none;
-                color: #ffffff;
+                color: {c['text_primary']};
                 outline: none;
                 font-size: 14px;
                 padding: 4px;
-            }
-            QListWidget::item {
+            }}
+            QListWidget::item {{
                 padding: 8px 11px;
                 border: none;
                 margin: 1px;
                 border-radius: 6px;
-            }
-            QListWidget::item:hover {
-                background-color: #404040;
-            }
-            QListWidget::item:selected {
-                background-color: #505050;
-            }
+            }}
+            QListWidget::item:hover {{
+                background-color: {c['bg_hover']};
+            }}
+            QListWidget::item:selected {{
+                background-color: {c['bg_pressed']};
+            }}
         """)
         
         self.layout.addWidget(self.dropdown)
@@ -175,9 +178,12 @@ class CatalogComboBox(QWidget):
         self.dropdown.setParent(parent_widget)
         self.dropdown.move(local_pos.x(), local_pos.y() + 5)
         
-        item_height = 35
+        item_height = 60  # Увеличили до 60 для лучшей видимости
         visible_items = min(len(self.items), 8)
         dropdown_height = visible_items * item_height + 8
+        
+        print(f"DEBUG: item_height={item_height}, visible_items={visible_items}, dropdown_height={dropdown_height}")
+        
         self.dropdown.setFixedHeight(dropdown_height)
         
         self.dropdown.show()
@@ -189,28 +195,44 @@ class CatalogComboBox(QWidget):
     
     def hide_dropdown(self):
         """Скрыть выпадающий список"""
+        print(f"DEBUG: hide_dropdown called, is_open={self.is_open}")
         if not self.is_open:
             return
         
         self.is_open = False
         self.arrow_label.setText("▼")
         
+        # Останавливаем текущую анимацию если она идет
+        if self.fade_animation.state() == self.fade_animation.State.Running:
+            self.fade_animation.stop()
+        
         self.fade_animation.setStartValue(1.0)
         self.fade_animation.setEndValue(0.0)
         self.fade_animation.start()
+        print(f"DEBUG: Animation started")
     
     def _on_animation_finished(self):
         """Завершение анимации"""
-        if not self.is_open:
+        print(f"DEBUG: _on_animation_finished called, is_open={self.is_open}, opacity={self.opacity_effect.opacity()}")
+        # Скрываем только если opacity близка к 0 (анимация закрытия)
+        if self.opacity_effect.opacity() < 0.1:
             self.dropdown.hide()
+            print(f"DEBUG: Dropdown hidden")
     
     def item_selected(self, item: QListWidgetItem):
         """Обработка выбора элемента"""
+        print(f"DEBUG: item_selected called, item={item.text() if item else None}")
         index = self.dropdown.row(item)
         if index != self.current_index:
             self.current_index = index
             self.button.setText(item.text())
             self.currentIndexChanged.emit(index)
+        
+        # Закрываем dropdown сразу без анимации
+        print(f"DEBUG: Hiding dropdown immediately")
+        self.is_open = False
+        self.arrow_label.setText("▼")
+        self.dropdown.hide()
         
         self.hide_dropdown()
     
@@ -219,3 +241,65 @@ class CatalogComboBox(QWidget):
         if self.is_open and not self.dropdown.geometry().contains(event.globalPosition().toPoint()):
             self.hide_dropdown()
         super().mousePressEvent(event)
+
+    def apply_theme(self):
+        """Применить тему к комбобоксу"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        
+        # Обновляем стиль кнопки
+        self.button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_secondary']};
+                border: 1px solid transparent;
+                border-radius: 8px;
+                padding: 8px 15px;
+                color: {c['text_primary']};
+                font-size: 14px;
+                text-align: left;
+                outline: none;
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+                border: 1px solid transparent;
+            }}
+            QPushButton:focus {{
+                background-color: {c['bg_hover']};
+                border: 1px solid transparent;
+                outline: none;
+            }}
+        """)
+        
+        # Обновляем стиль стрелки
+        self.arrow_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
+                font-size: 10px;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        
+        # Обновляем стиль выпадающего списка
+        self.dropdown.setStyleSheet(f"""
+            QListWidget {{
+                background-color: {c['bg_secondary']};
+                border: none;
+                color: {c['text_primary']};
+                outline: none;
+                font-size: 14px;
+                padding: 4px;
+            }}
+            QListWidget::item {{
+                padding: 8px 11px;
+                border: none;
+                margin: 1px;
+                border-radius: 6px;
+            }}
+            QListWidget::item:hover {{
+                background-color: {c['bg_hover']};
+            }}
+            QListWidget::item:selected {{
+                background-color: {c['bg_pressed']};
+            }}
+        """)
