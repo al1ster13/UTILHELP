@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional
 
 class CatalogComboBox(QWidget):
     """
-    Кастомный выпадающий список без системных ограничений
+    Кастомный выпадающий список 
     Используется в programs_tab и drivers_tab для фильтрации по категориям
     """
     
@@ -21,6 +21,7 @@ class CatalogComboBox(QWidget):
         
         self._setup_ui()
         self._setup_animations()
+        self._install_event_filter()
     
     def _setup_ui(self):
         """Настройка UI компонента"""
@@ -33,14 +34,15 @@ class CatalogComboBox(QWidget):
         
         self.button = QPushButton()
         self.button.setFixedHeight(35)
-        self.button.setFixedWidth(200)
+        self.button.setFixedWidth(207)
         self.button.clicked.connect(self.toggle_dropdown)
         self.button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['bg_secondary']};
                 border: 1px solid transparent;
                 border-radius: 8px;
-                padding: 8px 15px;
+                padding-left: 15px;
+                padding-right: 30px;
                 color: {c['text_primary']};
                 font-size: 14px;
                 text-align: left;
@@ -58,7 +60,7 @@ class CatalogComboBox(QWidget):
         """)
         
         button_container = QWidget()
-        button_container.setFixedSize(200, 35)
+        button_container.setFixedSize(207, 35)
         button_layout = QHBoxLayout(button_container)
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.addWidget(self.button)
@@ -76,13 +78,13 @@ class CatalogComboBox(QWidget):
         """)
         self.arrow_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.arrow_label.setParent(button_container)
-        self.arrow_label.move(175, 0)
+        self.arrow_label.move(182, 0)
         
         self.layout.addWidget(button_container)
         
         self.dropdown = QListWidget()
-        self.dropdown.setFixedWidth(192)
-        self.dropdown.setMaximumHeight(300)
+        self.dropdown.setFixedWidth(207)
+        self.dropdown.setMaximumHeight(250)
         self.dropdown.hide()
         self.dropdown.itemClicked.connect(self.item_selected)
         
@@ -95,6 +97,7 @@ class CatalogComboBox(QWidget):
             QListWidget {{
                 background-color: {c['bg_secondary']};
                 border: none;
+                border-radius: 8px;
                 color: {c['text_primary']};
                 outline: none;
                 font-size: 14px;
@@ -125,6 +128,16 @@ class CatalogComboBox(QWidget):
         self.fade_animation.setDuration(150)
         self.fade_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
         self.fade_animation.finished.connect(self._on_animation_finished)
+    
+    def _install_event_filter(self):
+        """Установка фильтра событий для закрытия при клике вне списка"""
+        if self.window():
+            self.window().installEventFilter(self)
+    
+    def showEvent(self, event):
+        """Обработка события показа виджета"""
+        super().showEvent(event)
+        self._install_event_filter()
     
     def addItem(self, text: str, data: str = ""):
         """Добавить элемент в список"""
@@ -178,7 +191,7 @@ class CatalogComboBox(QWidget):
         self.dropdown.setParent(parent_widget)
         self.dropdown.move(local_pos.x(), local_pos.y() + 5)
         
-        item_height = 60  # Увеличили до 60 для лучшей видимости
+        item_height = 35  
         visible_items = min(len(self.items), 8)
         dropdown_height = visible_items * item_height + 8
         
@@ -202,7 +215,6 @@ class CatalogComboBox(QWidget):
         self.is_open = False
         self.arrow_label.setText("▼")
         
-        # Останавливаем текущую анимацию если она идет
         if self.fade_animation.state() == self.fade_animation.State.Running:
             self.fade_animation.stop()
         
@@ -214,7 +226,6 @@ class CatalogComboBox(QWidget):
     def _on_animation_finished(self):
         """Завершение анимации"""
         print(f"DEBUG: _on_animation_finished called, is_open={self.is_open}, opacity={self.opacity_effect.opacity()}")
-        # Скрываем только если opacity близка к 0 (анимация закрытия)
         if self.opacity_effect.opacity() < 0.1:
             self.dropdown.hide()
             print(f"DEBUG: Dropdown hidden")
@@ -228,7 +239,6 @@ class CatalogComboBox(QWidget):
             self.button.setText(item.text())
             self.currentIndexChanged.emit(index)
         
-        # Закрываем dropdown сразу без анимации
         print(f"DEBUG: Hiding dropdown immediately")
         self.is_open = False
         self.arrow_label.setText("▼")
@@ -241,19 +251,38 @@ class CatalogComboBox(QWidget):
         if self.is_open and not self.dropdown.geometry().contains(event.globalPosition().toPoint()):
             self.hide_dropdown()
         super().mousePressEvent(event)
+    
+    def eventFilter(self, obj, event):
+        """Фильтр событий для закрытия dropdown при клике вне его"""
+        from PyQt6.QtCore import QEvent
+        
+        if event.type() == QEvent.Type.MouseButtonPress and self.is_open:
+            global_pos = event.globalPosition().toPoint()
+            
+            button_rect = self.button.rect()
+            button_global_rect = self.button.mapToGlobal(button_rect.topLeft())
+            button_global_rect = self.button.geometry()
+            button_global_rect.moveTopLeft(self.button.mapToGlobal(self.button.rect().topLeft()))
+            
+            dropdown_rect = self.dropdown.geometry()
+            
+            if not button_global_rect.contains(global_pos) and not dropdown_rect.contains(global_pos):
+                self.hide_dropdown()
+        
+        return super().eventFilter(obj, event)
 
     def apply_theme(self):
         """Применить тему к комбобоксу"""
         from theme_manager import theme_manager
         c = theme_manager.colors
         
-        # Обновляем стиль кнопки
         self.button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {c['bg_secondary']};
                 border: 1px solid transparent;
                 border-radius: 8px;
-                padding: 8px 15px;
+                padding-left: 15px;
+                padding-right: 30px;
                 color: {c['text_primary']};
                 font-size: 14px;
                 text-align: left;
@@ -270,7 +299,6 @@ class CatalogComboBox(QWidget):
             }}
         """)
         
-        # Обновляем стиль стрелки
         self.arrow_label.setStyleSheet(f"""
             QLabel {{
                 color: {c['text_primary']};
@@ -280,11 +308,11 @@ class CatalogComboBox(QWidget):
             }}
         """)
         
-        # Обновляем стиль выпадающего списка
         self.dropdown.setStyleSheet(f"""
             QListWidget {{
                 background-color: {c['bg_secondary']};
                 border: none;
+                border-radius: 8px;
                 color: {c['text_primary']};
                 outline: none;
                 font-size: 14px;
