@@ -12,13 +12,6 @@ from localization import t
 
 
 class BaseInfoPanel(QWidget):
-    """
-    Базовый класс для информационных панелей
-    
-    Содержит общую логику для отображения информации о программах/драйверах
-    Наследники должны реализовать специфичные методы
-    """
-    
     closed = pyqtSignal()
     
     def __init__(self, parent: Optional[QWidget] = None):
@@ -33,22 +26,23 @@ class BaseInfoPanel(QWidget):
         """Настройка UI панели"""
         self.setFixedSize(420, 480)
         self.hide()
-        
-        # Главный контейнер с фоном
+
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         self.main_container = QWidget(self)
         self.main_container.setGeometry(0, 0, 420, 480)
-        self.main_container.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        self.main_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_secondary']};
                 border-radius: 15px;
-            }
+            }}
         """)
         
         container_layout = QVBoxLayout(self.main_container)
         container_layout.setContentsMargins(20, 20, 20, 20)
         container_layout.setSpacing(15)
         
-        # Контент напрямую без скролла
         self.content_widget = QWidget()
         self.content_widget.setStyleSheet("background-color: transparent;")
         self.content_layout = QVBoxLayout(self.content_widget)
@@ -70,9 +64,6 @@ class BaseInfoPanel(QWidget):
     def show_item(self, item_data: Dict[str, Any]):
         """
         Показать информацию об элементе
-        
-        Args:
-            item_data: Данные программы или драйвера
         """
         if self.is_animating:
             return
@@ -80,22 +71,19 @@ class BaseInfoPanel(QWidget):
         self.current_item_data = item_data
         self.is_animating = True
         
-        # Очищаем старый контент
         self._clear_content()
         
-        self._create_header(item_data)  # Заголовок + иконка
-        self._create_info_section(item_data)  # Категория
-        self._create_description(item_data)  # Описание
-        self._create_buttons(item_data)  # Кнопки
+        self._create_header(item_data)  
+        self._create_info_section(item_data)  
+        self._create_description(item_data)  
+        self._create_buttons(item_data)  
         
-        # Позиционируем панель справа
         if self.parent():
             parent_rect = self.parent().rect()
             x = parent_rect.width() - self.width() - 20
             y = (parent_rect.height() - self.height()) // 2
             self.move(x, y)
         
-        # Показываем с анимацией
         self.show()
         self.raise_()
         self.fade_animation.setStartValue(0.0)
@@ -115,7 +103,25 @@ class BaseInfoPanel(QWidget):
     def refresh_content(self):
         """Обновить содержимое панели (для смены языка)"""
         if self.current_item_data and self.isVisible():
-            # Перерисовываем контент без анимации
+            self._clear_content()
+            self._create_header(self.current_item_data)
+            self._create_info_section(self.current_item_data)
+            self._create_description(self.current_item_data)
+            self._create_buttons(self.current_item_data)
+    
+    def apply_theme(self):
+        """Применить тему к панели"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        
+        self.main_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_secondary']};
+                border-radius: 15px;
+            }}
+        """)
+        
+        if self.current_item_data and self.isVisible():
             self._clear_content()
             self._create_header(self.current_item_data)
             self._create_info_section(self.current_item_data)
@@ -132,7 +138,6 @@ class BaseInfoPanel(QWidget):
     
     def _clear_content(self):
         """Очистить контент"""
-        # Удаляем все виджеты из layout
         while self.content_layout.count():
             item = self.content_layout.takeAt(0)
             if item.widget():
@@ -155,55 +160,54 @@ class BaseInfoPanel(QWidget):
     
     def _create_header(self, item_data: Dict[str, Any]):
         """Создать заголовок с названием и кнопкой закрытия"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         header_layout = QHBoxLayout()
-        
+
         name_label = QLabel(item_data.get("name", ""))
         name_label.setWordWrap(False)
-        name_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        name_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 20px;
                 font-weight: bold;
                 background-color: transparent;
-            }
+            }}
         """)
         header_layout.addWidget(name_label)
         header_layout.addStretch()
-        
+
         from resource_path import get_icon_path as get_system_icon
         from PyQt6.QtGui import QIcon
         from PyQt6.QtCore import QSize
-        
+
         close_btn = QPushButton()
         close_btn.setFixedSize(28, 28)
         close_btn.clicked.connect(self.hide_panel)
-        
+
         close_icon_path = get_system_icon("closemenu.png")
         if close_icon_path:
-            icon = QIcon(close_icon_path)
-            close_btn.setIcon(icon)
+            close_btn.setIcon(QIcon(close_icon_path))
             close_btn.setIconSize(QSize(16, 16))
         else:
             close_btn.setText("✕")
-        
-        close_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
-                color: #ffffff;
+
+        close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
+                color: {c['text_primary']};
                 border: none;
                 border-radius: 12px;
                 font-size: 14px;
                 font-weight: bold;
                 text-align: center;
                 padding: 0px;
-            }
-            QPushButton:hover {
-                background-color: #777777;
-            }
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
         """)
-        
+
         header_layout.addWidget(close_btn)
-        
         self.content_layout.addLayout(header_layout)
         
         icon_container = QWidget()
@@ -213,27 +217,35 @@ class BaseInfoPanel(QWidget):
         icon_container_layout.setContentsMargins(0, 0, 0, 0)
         icon_container_layout.setSpacing(0)
         
-        # Большая иконка по центру
         icon_label = QLabel()
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_label.setObjectName("info_panel_logo")
         
         logo_name = item_data.get("logo", "")
         if logo_name:
-            icon_path = self._get_icon_path(logo_name)
-            if icon_path:
-                pixmap = QPixmap(icon_path)
-                if not pixmap.isNull():
-                    scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                    icon_label.setPixmap(scaled_pixmap)
-                else:
-                    icon_label.setText("📦")
-                    icon_label.setStyleSheet("""
-                        QLabel {
-                            color: #ffffff;
-                            font-size: 60px;
-                            background-color: transparent;
-                        }
-                    """)
+            from logo_manager import get_logo_manager
+            logo_manager = get_logo_manager()
+            
+            def on_logo_loaded(logo_name_param, pixmap):
+                """Callback для загрузки логотипа"""
+                if pixmap is not None and not pixmap.isNull() and icon_label is not None:
+                    try:
+                        scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                        if theme_manager.is_light():
+                            from theme_manager import colorize_pixmap
+                            scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
+                        icon_label.setPixmap(scaled_pixmap)
+                    except RuntimeError:
+                        pass
+            
+            pixmap = logo_manager.load_logo(logo_name, on_logo_loaded)
+            
+            if pixmap and not pixmap.isNull():
+                scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                if theme_manager.is_light():
+                    from theme_manager import colorize_pixmap
+                    scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
+                icon_label.setPixmap(scaled_pixmap)
             else:
                 icon_label.setText("📦")
                 icon_label.setStyleSheet("""
@@ -243,10 +255,18 @@ class BaseInfoPanel(QWidget):
                         background-color: transparent;
                     }
                 """)
+        else:
+            icon_label.setText("📦")
+            icon_label.setStyleSheet("""
+                QLabel {
+                    color: #ffffff;
+                    font-size: 60px;
+                    background-color: transparent;
+                }
+            """)
         
         icon_label.setStyleSheet(icon_label.styleSheet() + "background-color: transparent;")
         
-        # Центрируем иконку в контейнере
         icon_container_layout.addStretch()
         icon_container_layout.addWidget(icon_label)
         icon_container_layout.addStretch()
@@ -256,22 +276,22 @@ class BaseInfoPanel(QWidget):
     def _create_description(self, item_data: Dict[str, Any]):
         """Создать описание в скролл-области"""
         from localization import get_localized_description
-        
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         description = get_localized_description(item_data)
         if description:
             desc_label = QLabel(description)
             desc_label.setWordWrap(True)
-            desc_label.setStyleSheet("""
-                QLabel {
-                    color: #ffffff;
+            desc_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {c['text_primary']};
                     font-size: 14px;
-                    line-height: 1.5;
                     background-color: transparent;
                     padding: 0px;
-                }
+                }}
             """)
-            
-            # Скролл-область для описания
+
             from scroll_helper import configure_scroll_area
             desc_scroll = QScrollArea()
             desc_scroll.setWidget(desc_label)
@@ -279,95 +299,84 @@ class BaseInfoPanel(QWidget):
             desc_scroll.setFixedHeight(140)
             desc_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             desc_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            
             configure_scroll_area(desc_scroll)
-            
-            desc_scroll.setStyleSheet("""
-                QScrollArea {
+            desc_scroll.setStyleSheet(f"""
+                QScrollArea {{
                     border: none;
                     background: transparent;
                     margin-left: 3px;
-                }
-                QScrollBar:vertical {
-                    background-color: #2d2d2d;
+                }}
+                QScrollBar:vertical {{
+                    background-color: {c['scrollbar_bg']};
                     width: 8px;
                     border-radius: 4px;
                     margin: 0px;
-                }
-                QScrollBar::handle:vertical {
-                    background-color: #555555;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {c['scrollbar_handle']};
                     border-radius: 4px;
                     min-height: 20px;
-                }
-                QScrollBar::handle:vertical:hover {
-                    background-color: #666666;
-                }
-                QScrollBar::handle:vertical:pressed {
-                    background-color: #777777;
-                }
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                    border: none;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {c['scrollbar_hover']};
+                }}
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                    border: none; background: none; height: 0px;
+                }}
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                     background: none;
-                    height: 0px;
-                }
-                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                    background: none;
-                }
+                }}
             """)
-            
+
             self.content_layout.addWidget(desc_scroll)
     
     def _create_info_section(self, item_data: Dict[str, Any]):
         """Создать секцию с дополнительной информацией"""
-        # Категория
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         category = item_data.get("category", "")
         if category:
-            # Переводим каждую категорию (может быть несколько через запятую)
             from localization import translate_category
             categories = [cat.strip() for cat in category.split(',')]
-            translated_categories = [translate_category(cat) for cat in categories]
-            translated_category_str = ', '.join(translated_categories)
-            
+            translated_category_str = ', '.join([translate_category(cat) for cat in categories])
+
             category_label = QLabel(t("info.category", category=translated_category_str))
             category_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            category_label.setStyleSheet("""
-                QLabel {
-                    color: #cccccc;
+            category_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {c['text_secondary']};
                     font-size: 14px;
-                    margin: 5px 0px 5px 0px;
+                    margin: 5px 0px;
                     background-color: transparent;
-                }
+                }}
             """)
             self.content_layout.addWidget(category_label)
-        
-        # Дополнительная информация от наследников
+
         self._add_custom_info(item_data)
-    
+
     def _add_info_row(self, icon: str, text: str):
         """Добавить строку информации"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         row_layout = QHBoxLayout()
         row_layout.setSpacing(10)
-        
+
         icon_label = QLabel(icon)
-        icon_label.setStyleSheet("""
-            QLabel {
-                font-size: 16px;
-                background-color: transparent;
-            }
-        """)
+        icon_label.setStyleSheet("QLabel { font-size: 16px; background-color: transparent; }")
         row_layout.addWidget(icon_label)
-        
+
         text_label = QLabel(text)
         text_label.setWordWrap(True)
-        text_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        text_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 14px;
                 background-color: transparent;
-            }
+            }}
         """)
         row_layout.addWidget(text_label, 1)
-        
         self.content_layout.addLayout(row_layout)
     
     def _create_buttons(self, item_data: Dict[str, Any]):
@@ -381,12 +390,10 @@ class BaseInfoPanel(QWidget):
         
         buttons_layout.addStretch()
         
-        # Основная кнопка
         main_button = self._create_main_button(item_data)
         if main_button:
             buttons_layout.addWidget(main_button)
         
-        # Дополнительная кнопка (сайт разработчика)
         if item_data.get("website"):
             website_button = self._create_website_button(item_data)
             buttons_layout.addWidget(website_button)
