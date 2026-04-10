@@ -33,7 +33,6 @@ class OptimizedSystemScanner:
         programs = set()
         versions = {}
         
-        # Параллельное сканирование разных веток реестра
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
                 executor.submit(self._scan_registry_key, hkey, path): (hkey, path)
@@ -94,7 +93,6 @@ class OptimizedSystemScanner:
         """Создание индекса для быстрого поиска программ"""
         self._program_index = {}
         
-        # Словарь для транслитерации ключевых слов
         transliteration = {
             'яндекс': 'yandex',
             'музыка': 'music',
@@ -102,7 +100,6 @@ class OptimizedSystemScanner:
         }
         
         for program in self.installed_programs:
-            # Индексируем по ключевым словам
             words = self._extract_key_words(program.lower())
             for word in words:
                 if word not in self._program_index:
@@ -121,7 +118,6 @@ class OptimizedSystemScanner:
         versions = {}
         
         try:
-            # Используем более быстрый запрос WMI
             powershell_command = """
             Get-CimInstance Win32_PnPSignedDriver -Filter "DeviceName IS NOT NULL AND DriverVersion IS NOT NULL" |
             Where-Object {
@@ -138,7 +134,7 @@ class OptimizedSystemScanner:
                 ["powershell", "-NoProfile", "-Command", powershell_command],
                 capture_output=True,
                 text=True,
-                timeout=20,  # Уменьшен таймаут
+                timeout=20,  
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
             
@@ -209,12 +205,10 @@ class OptimizedSystemScanner:
                     "version": "Установлен"
                 }
         
-        # Сначала проверяем в программах (быстрее)
         program_result = self._check_in_programs(driver_name)
         if program_result["installed"]:
             return program_result
         
-        # Затем в драйверах
         driver_result = self._check_in_drivers(driver_name)
         if driver_result["installed"]:
             return driver_result
@@ -226,7 +220,6 @@ class OptimizedSystemScanner:
         driver_name_lower = driver_name.lower()
         driver_words = set(self._extract_key_words(driver_name_lower))
         
-        # Используем индекс для быстрого поиска
         candidates = []
         search_programs = set()
         
@@ -240,7 +233,6 @@ class OptimizedSystemScanner:
         for installed_program in search_programs:
             installed_lower = installed_program.lower()
             
-            # Специальная обработка для .NET
             if ('.net' in driver_name_lower or 'dotnet' in driver_name_lower) and '.net' in installed_lower:
                 if not self._has_exclusions(installed_lower, driver_name_lower):
                     candidates.append({
@@ -249,7 +241,6 @@ class OptimizedSystemScanner:
                     })
                     continue
             
-            # Проверка совпадения ключевых слов
             if any(word in installed_lower for word in driver_words if len(word) > 2):
                 if not self._has_exclusions(installed_lower, driver_name_lower):
                     if self._is_relevant_match(driver_name_lower, installed_lower):
@@ -294,7 +285,6 @@ class OptimizedSystemScanner:
         
         common_words = driver_words.intersection(installed_words)
         
-        # Специальные правила для известных драйверов
         if 'amd' in driver_name and 'adrenalin' in driver_name:
             return 'amd' in installed_name and ('settings' in installed_name or 'software' in installed_name)
         
@@ -307,7 +297,6 @@ class OptimizedSystemScanner:
         if 'java' in driver_words:
             return 'java' in installed_name
         
-        # Общие правила
         if len(driver_words) <= 2:
             return len(common_words) >= 1
         
@@ -389,24 +378,18 @@ class OptimizedSystemScanner:
         target_lower = target_clean.lower()
         installed_lower = installed_clean.lower()
         
-        # Специальные правила для Yandex программ
         if "yandex" in target_lower or "яндекс" in target_lower:
-            # Yandex Browser - ищем просто "Yandex" или "Яндекс" без других слов
             if "browser" in target_lower or "браузер" in target_lower:
                 if ("yandex" in installed_lower or "яндекс" in installed_lower):
-                    # Исключаем музыку и другие сервисы
                     if not any(word in installed_lower for word in ["music", "музык", "кнопки", "сервис", "patcher"]):
                         return True
             
-            # Yandex Music - ищем "Яндекс Музыка" или "Yandex Music"
             if "music" in target_lower or "музык" in target_lower:
                 if ("yandex" in installed_lower or "яндекс" in installed_lower):
                     if "music" in installed_lower or "музык" in installed_lower:
-                        # Исключаем патчеры
                         if "patcher" not in installed_lower and "mod" not in installed_lower:
                             return True
         
-        # Специальные правила для Opera
         if target_clean == "opera" and "gx" in installed_lower:
             return False
         if "opera gx" in target_lower and "gx" not in installed_lower:
@@ -456,10 +439,8 @@ class OptimizedSystemScanner:
         }
 
 
-# Обратная совместимость - экспортируем оптимизированные классы под старыми именами
 SystemScanner = OptimizedSystemScanner
 
-# Экспортируем все классы для использования в других модулях
 __all__ = [
     'OptimizedSystemScanner',
     'SystemScanner',
