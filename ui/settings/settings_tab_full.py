@@ -23,35 +23,43 @@ class SettingsTab(BaseWidget):
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 3, 0, 3)
         main_layout.setSpacing(0)
-        
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
+
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
                 border-radius: 10px;
-            }
+            }}
         """)
-        
-        self.snow_enabled = False
-        self.theme_light = False
+
+        from settings_manager import settings_manager
+        self.snow_enabled = settings_manager.get_setting("snow_enabled", False)
+        self.theme_light = theme_manager.is_light()
         self.snow_toggle = None
         self.theme_toggle = None
-        
+
         self.create_sidebar(main_layout)
         self.create_content_area(main_layout)
         self.show_interface_settings()
 
     def load_icon_pixmap(self, icon_name: str, size=None) -> QPixmap:
         """Загрузить иконку с правильным путем для exe"""
+        from theme_manager import theme_manager, colorize_pixmap
+
         icon_path = get_icon_path(icon_name)
-        
+
         if icon_path:
             pixmap = QPixmap(icon_path)
-            
+
             if not pixmap.isNull() and size:
-                scaled = pixmap.scaled(size[0], size[1], Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                return scaled
+                pixmap = pixmap.scaled(size[0], size[1], Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+
+            if not pixmap.isNull() and theme_manager.is_light():
+                pixmap = colorize_pixmap(pixmap, theme_manager.colors['text_secondary'])
+
             return pixmap
-        
+
         return QPixmap()
 
     def create_icon_label(self, icon_name: str, size=(24, 24), fallback_text="•") -> QLabel:
@@ -70,31 +78,34 @@ class SettingsTab(BaseWidget):
 
     def create_sidebar(self, main_layout: QHBoxLayout) -> None:
         """Создание боковой панели с кнопками"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         sidebar = QWidget()
         sidebar.setFixedWidth(200)
-        sidebar.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        sidebar.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_sidebar']};
                 border-top-left-radius: 10px;
                 border-bottom-left-radius: 10px;
-            }
+            }}
         """)
-        
+
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(0, 15, 0, 15)
         sidebar_layout.setSpacing(5)
-        
+
         self.title_label = QLabel(t("settings.title"))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 18px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 margin: 0px 0px 15px 0px;
                 letter-spacing: 1px;
-            }
+            }}
         """)
         sidebar_layout.addWidget(self.title_label)
         
@@ -124,23 +135,17 @@ class SettingsTab(BaseWidget):
     def create_menu_button(self, icon_name: str, text: str, active: bool = False) -> QPushButton:
         """Создание кнопки меню"""
         btn = QPushButton()
+        btn.setProperty("icon_name", icon_name)  # Сохраняем имя иконки для перезагрузки
         
-        try:
-            icon_path = get_icon_path(icon_name)
-            if icon_path:
-                pixmap = QPixmap(icon_path)
-                if not pixmap.isNull():
-                    from PyQt6.QtGui import QIcon
-                    from PyQt6.QtCore import QSize
-                    icon = QIcon(pixmap)
-                    btn.setIcon(icon)
-                    btn.setIconSize(pixmap.size().boundedTo(QPixmap(16, 16).size()))
-                    btn.setText(f"  {text}")
-                else:
-                    btn.setText("•  " + text)
-            else:
-                btn.setText("•  " + text)
-        except:
+        pixmap = self.load_icon_pixmap(icon_name)
+        if pixmap and not pixmap.isNull():
+            from PyQt6.QtGui import QIcon
+            from PyQt6.QtCore import QSize
+            icon = QIcon(pixmap)
+            btn.setIcon(icon)
+            btn.setIconSize(QSize(16, 16))
+            btn.setText(f"  {text}")
+        else:
             btn.setText("•  " + text)
         
         btn.setFixedHeight(50)
@@ -154,10 +159,12 @@ class SettingsTab(BaseWidget):
 
     def get_active_button_style(self) -> str:
         """Стиль активной кнопки"""
-        return """
-            QPushButton {
-                background-color: #404040;
-                color: #ffffff;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        return f"""
+            QPushButton {{
+                background-color: {c['bg_input']};
+                color: {c['text_primary']};
                 border: none;
                 border-radius: 8px;
                 font-size: 14px;
@@ -167,22 +174,24 @@ class SettingsTab(BaseWidget):
                 padding-left: 20px;
                 margin: 2px 10px;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-            }
-            QPushButton:focus {
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+            }}
+            QPushButton:focus {{
                 outline: none;
                 border: none;
-            }
+            }}
         """
 
     def get_inactive_button_style(self) -> str:
         """Стиль неактивной кнопки"""
-        return """
-            QPushButton {
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        return f"""
+            QPushButton {{
                 background-color: transparent;
-                color: #cccccc;
+                color: {c['text_secondary']};
                 border: none;
                 border-radius: 8px;
                 font-size: 14px;
@@ -192,67 +201,72 @@ class SettingsTab(BaseWidget):
                 padding-left: 20px;
                 margin: 2px 10px;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #2d2d2d;
-                color: #ffffff;
-            }
-            QPushButton:focus {
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+                color: {c['text_primary']};
+            }}
+            QPushButton:focus {{
                 outline: none;
                 border: none;
-            }
+            }}
         """
 
     def create_content_area(self, main_layout: QHBoxLayout) -> None:
         """Создание области содержимого с прокруткой"""
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet("""
-            QScrollArea {
-                background-color: #1a1a1a;
+    def create_content_area(self, main_layout: QHBoxLayout) -> None:
+        """Создание области содержимого с прокруткой"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: {c['bg_main']};
                 border: none;
                 border-top-right-radius: 10px;
                 border-bottom-right-radius: 10px;
-            }
-            QScrollBar:vertical {
-                background-color: #2d2d2d;
+            }}
+            QScrollBar:vertical {{
+                background-color: {c['scrollbar_bg']};
                 width: 12px;
                 border-radius: 6px;
                 margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['scrollbar_handle']};
                 border-radius: 6px;
                 min-height: 30px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['scrollbar_hover']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                 background: none;
-            }
+            }}
         """)
-        
+
         self.content_area = QWidget()
-        self.content_area.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
+        self.content_area.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
                 border: none;
-            }
+            }}
         """)
         
         self.content_layout = QVBoxLayout(self.content_area)
         self.content_layout.setContentsMargins(40, 30, 40, 30)
         self.content_layout.setSpacing(25)
         
-        scroll_area.setWidget(self.content_area)
+        self.scroll_area.setWidget(self.content_area)
         
-        main_layout.addWidget(scroll_area)
+        main_layout.addWidget(self.scroll_area)
 
     def clear_content(self) -> None:
         """Очистка содержимого"""
@@ -271,86 +285,97 @@ class SettingsTab(BaseWidget):
         self.updates_btn.setStyleSheet(self.get_inactive_button_style())
         self.about_btn.setStyleSheet(self.get_inactive_button_style())
         self.contacts_btn.setStyleSheet(self.get_inactive_button_style())
-        
+
         self.clear_content()
-        
         self.content_layout.setContentsMargins(40, 30, 40, 30)
-        
+
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         title_layout = QHBoxLayout()
         title_layout.setSpacing(10)
         title_layout.setContentsMargins(0, 0, 0, 20)
-        
+
         icon_label = self.create_icon_label("interface.png", (24, 24))
-        
         icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         icon_label.setContentsMargins(0, 4, 0, 0)
         title_layout.addWidget(icon_label)
-        
+
         title_text = QLabel(t("settings.interface"))
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        title_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 24px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         title_layout.addWidget(title_text)
         title_layout.addStretch()
-        
+
         title_container = QWidget()
         title_container.setLayout(title_layout)
         self.content_layout.addWidget(title_container)
-        
+
         from localization import get_localization
-        from PyQt6.QtWidgets import QComboBox
+        from ui.components.catalog_combo_box import CatalogComboBox
         from settings_manager import settings_manager
-        
+        from logger import log_info
+
         localization = get_localization()
-        
-        self.language_combo = QComboBox()
+
+        self.language_combo = CatalogComboBox()
         self.language_combo.setFixedHeight(40)
-        self.language_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #404040;
-                color: #ffffff;
-                border: none;
-                border-radius: 8px;
-                padding: 8px 15px;
-                font-size: 14px;
-                min-width: 150px;
-            }
-            QComboBox:hover {
-                background-color: #4a4a4a;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 30px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #ffffff;
-                margin-right: 10px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #404040;
-                color: #ffffff;
-                selection-background-color: #555555;
-                border: 1px solid #555555;
-                border-radius: 4px;
-            }
-        """)
         
-        for lang_code, lang_name in localization.get_available_languages().items():
-            self.language_combo.addItem(lang_name, lang_code)
+        # Уменьшаем ширину dropdown для языков  
+        self.language_combo.dropdown.setFixedWidth(199)
+        # Отключаем скроллбар
+        self.language_combo.dropdown.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        # Добавляем языки в явном порядке
+        available_langs = localization.get_available_languages()
+        log_info(f"Available languages: {available_langs}")
+        
+        # Сначала русский, потом английский
+        for lang_code in ["ru", "en"]:
+            if lang_code in available_langs:
+                lang_name = available_langs[lang_code]
+                self.language_combo.addItem(lang_name, lang_code)
+                log_info(f"Added language: {lang_name} ({lang_code})")
+        
+        log_info(f"Total items in combo: {len(self.language_combo.items)}")
+        log_info(f"Items: {self.language_combo.items}")
+        log_info(f"Dropdown item count: {self.language_combo.dropdown.count()}")
+        
+        # Проверяем каждый элемент в dropdown
+        for i in range(self.language_combo.dropdown.count()):
+            item = self.language_combo.dropdown.item(i)
+            log_info(f"Dropdown item {i}: {item.text() if item else 'None'}")
+        
+        # Принудительно обновляем dropdown
+        self.language_combo.dropdown.update()
+        self.language_combo.dropdown.repaint()
+        # Прокручиваем к началу списка
+        self.language_combo.dropdown.scrollToTop()
+        
+        # Подключаемся к сигналу нажатия кнопки для изменения высоты dropdown
+        def fix_dropdown_height():
+            from PyQt6.QtCore import QTimer
+            # Увеличиваем высоту чуть больше для комфортного отображения
+            # padding 8px*2 + текст ~20px = ~36px на элемент
+            # 36px * 2 + padding списка 8px + запас 10px = 90px
+            QTimer.singleShot(10, lambda: self.language_combo.dropdown.setFixedHeight(90))
+        
+        self.language_combo.button.clicked.connect(fix_dropdown_height)
         
         current_lang = settings_manager.get_setting("language", "ru")
-        for i in range(self.language_combo.count()):
-            if self.language_combo.itemData(i) == current_lang:
+        log_info(f"Current language setting: {current_lang}")
+        
+        for i in range(len(self.language_combo.items)):
+            if self.language_combo.items[i][1] == current_lang:
                 self.language_combo.setCurrentIndex(i)
+                log_info(f"Set current index to: {i}")
                 break
         
         self.language_combo.currentIndexChanged.connect(self.on_language_changed)
@@ -408,45 +433,41 @@ class SettingsTab(BaseWidget):
         self.content_layout.addWidget(self.sounds_setting)
         
         self.toggle_notification_sounds_availability(notifications_enabled)
-        
-        self.theme_toggle = DisabledToggleSwitch()
-        self.theme_toggle.setChecked(self.theme_light)  # Всегда False
-        
+
+        # Тема — теперь полностью рабочая
+        from theme_manager import theme_manager
+        self.theme_light = theme_manager.is_light()
+
+        self.theme_toggle = ToggleSwitch()
+        self.theme_toggle.setChecked(self.theme_light)
+        self.theme_toggle.toggled.connect(self.save_theme_state)
+
         self.theme_setting = self.create_setting_item(
-            "whitetheme.png", 
-            t("settings.theme"), 
+            "whitetheme.png",
+            t("settings.theme"),
             t("settings.theme_light"),
             self.theme_toggle
         )
         self.content_layout.addWidget(self.theme_setting)
-        
-        from PyQt6.QtWidgets import QGraphicsOpacityEffect
-        opacity_effect = QGraphicsOpacityEffect()
-        opacity_effect.setOpacity(0.4)
-        self.theme_setting.setGraphicsEffect(opacity_effect)
-        self.theme_setting.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
-                border-radius: 15px;
-                border: 1px solid #2d2d2d;
-            }
-        """)
-        
+
         self.content_layout.addStretch()
 
     def create_setting_item(self, icon: str, title: str, description: str, control_widget: QWidget) -> QWidget:
         """Создание элемента настройки"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         item = QWidget()
-        item.setMinimumHeight(100)  # Увеличена минимальная высота
-        item.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        item.setMinimumHeight(100)
+        item.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_card']};
                 border-radius: 15px;
-                border: 1px solid #404040;
-            }
-            QWidget:hover {
-                border: 1px solid #555555;
-            }
+                border: 1px solid {c['card_border']};
+            }}
+            QWidget:hover {{
+                border: 1px solid {c['border_hover']};
+            }}
         """)
         
         item_layout = QHBoxLayout(item)
@@ -456,31 +477,17 @@ class SettingsTab(BaseWidget):
         icon_label = QLabel()
         if icon.endswith('.png'):
             try:
-                icon_path = get_icon_path(icon)
-                if icon_path:
-                    pixmap = QPixmap(icon_path)
-                    if not pixmap.isNull():
-                        scaled_pixmap = pixmap.scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                        icon_label.setPixmap(scaled_pixmap)
-                        icon_label.setStyleSheet("""
-                            QLabel {
-                                background: transparent;
-                                border: none;
-                                min-width: 40px;
-                                max-width: 40px;
-                            }
-                        """)
-                    else:
-                        icon_label.setText("*")
-                        icon_label.setStyleSheet("""
-                            QLabel {
-                                font-size: 28px;
-                                background: transparent;
-                                border: none;
-                                min-width: 40px;
-                                max-width: 40px;
-                            }
-                        """)
+                pixmap = self.load_icon_pixmap(icon, (28, 28))
+                if not pixmap.isNull():
+                    icon_label.setPixmap(pixmap)
+                    icon_label.setStyleSheet("""
+                        QLabel {
+                            background: transparent;
+                            border: none;
+                            min-width: 40px;
+                            max-width: 40px;
+                        }
+                    """)
                 else:
                     icon_label.setText("*")
                     icon_label.setStyleSheet("""
@@ -522,9 +529,9 @@ class SettingsTab(BaseWidget):
         text_layout.setSpacing(5)  # Уменьшен отступ между заголовком и описанием
         
         title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 18px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
@@ -532,14 +539,14 @@ class SettingsTab(BaseWidget):
                 border: none;
                 margin-left: 0px;
                 padding-left: 0px;
-            }
+            }}
         """)
         title_label.setTextFormat(Qt.TextFormat.PlainText)
-        
+
         desc_label = QLabel(description)
-        desc_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        desc_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 14px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
@@ -547,7 +554,7 @@ class SettingsTab(BaseWidget):
                 line-height: 1.4;
                 margin-left: 0px;
                 padding-left: 0px;
-            }
+            }}
         """)
         desc_label.setWordWrap(False)  # Однострочное описание
         desc_label.setTextFormat(Qt.TextFormat.PlainText)
@@ -587,14 +594,16 @@ class SettingsTab(BaseWidget):
         icon_label.setContentsMargins(0, 2, 0, 0)
         title_layout.addWidget(icon_label)
         
+        from theme_manager import theme_manager
+        c = theme_manager.colors
         title_text = QLabel(t("settings.updates"))
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        title_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 24px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         title_layout.addWidget(title_text)
@@ -631,14 +640,16 @@ class SettingsTab(BaseWidget):
         icon_label.setContentsMargins(0, 2, 0, 0)
         title_layout.addWidget(icon_label)
         
+        from theme_manager import theme_manager
+        c = theme_manager.colors
         title_text = QLabel(t("settings.about"))
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        title_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 24px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         title_layout.addWidget(title_text)
@@ -675,14 +686,16 @@ class SettingsTab(BaseWidget):
         icon_label.setContentsMargins(0, 2, 0, 0)
         title_layout.addWidget(icon_label)
         
+        from theme_manager import theme_manager
+        c = theme_manager.colors
         title_text = QLabel(t("settings.contacts"))
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        title_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 24px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         title_layout.addWidget(title_text)
@@ -718,14 +731,16 @@ class SettingsTab(BaseWidget):
         icon_label.setContentsMargins(0, 2, 0, 0)
         title_layout.addWidget(icon_label)
         
+        from theme_manager import theme_manager
+        c = theme_manager.colors
         title_text = QLabel(t("settings.files"))
-        title_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        title_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 24px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         title_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         title_layout.addWidget(title_text)
@@ -752,7 +767,9 @@ class SettingsTab(BaseWidget):
 
     def create_temp_files_widget(self) -> QWidget:
         """Создание виджета с информацией о временных файлах"""
-        
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setSpacing(20)
@@ -760,15 +777,15 @@ class SettingsTab(BaseWidget):
         temp_manager = get_temp_manager()
         
         info_text = QLabel(f"{t('settings.temp_folder')}\n{temp_manager.get_temp_dir()}")
-        info_text.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        info_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 14px;
-                background-color: #2d2d2d;
+                background-color: {c['bg_card']};
                 border-radius: 8px;
                 padding: 15px;
-                border: 1px solid #404040;
-            }
+                border: 1px solid {c['card_border']};
+            }}
         """)
         layout.addWidget(info_text)
         
@@ -777,56 +794,56 @@ class SettingsTab(BaseWidget):
         formatted_size = temp_manager.format_size(total_size)
         
         self.stats_text = QLabel(t("settings.files_stats", count=files_count, size=formatted_size))
-        self.stats_text.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.stats_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 16px;
-                background-color: #252525;
+                background-color: {c['bg_tertiary']};
                 border-radius: 8px;
                 padding: 15px;
-                border: 1px solid #404040;
-            }
+                border: 1px solid {c['card_border']};
+            }}
         """)
         layout.addWidget(self.stats_text)
         
         clear_btn = QPushButton(t("settings.clean_temp"))
         clear_btn.clicked.connect(self.clear_temp_files)
-        clear_btn.setStyleSheet("""
-            QPushButton {
+        clear_btn.setStyleSheet(f"""
+            QPushButton {{
                 background-color: rgba(244, 67, 54, 0.1);
-                color: #f44336;
+                color: {c['error']};
                 border: 1px solid rgba(244, 67, 54, 0.3);
                 padding: 12px 20px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 14px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: rgba(244, 67, 54, 0.2);
                 border: 1px solid rgba(244, 67, 54, 0.5);
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: rgba(244, 67, 54, 0.3);
-                border: 1px solid #f44336;
-            }
-            QPushButton:focus {
+                border: 1px solid {c['error']};
+            }}
+            QPushButton:focus {{
                 outline: none;
                 border: 1px solid rgba(244, 67, 54, 0.5);
-            }
+            }}
         """)
         layout.addWidget(clear_btn)
         
         self.cleanup_message = QLabel("")
-        self.cleanup_message.setStyleSheet("""
-            QLabel {
-                color: #27ae60;
+        self.cleanup_message.setStyleSheet(f"""
+            QLabel {{
+                color: {c['success']};
                 font-size: 14px;
-                background-color: #1e3a2e;
+                background-color: {c['bg_card']};
                 border-radius: 8px;
                 padding: 12px 15px;
-                border: 1px solid #27ae60;
+                border: 1px solid {c['success']};
                 margin-top: 10px;
-            }
+            }}
         """)
         self.cleanup_message.hide()
         
@@ -859,76 +876,88 @@ class SettingsTab(BaseWidget):
     
     def clear_temp_files(self) -> None:
         """Очистить временные файлы"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
         
         try:
             temp_manager = get_temp_manager()
-            
             cleaned_files = temp_manager.manual_cleanup()
             
             if not hasattr(self, 'cleanup_message') or self.cleanup_message is None:
-                return  
+                return
             
             if cleaned_files:
                 if len(cleaned_files) == 1:
                     message = t("settings.temp_deleted_one", name=cleaned_files[0])
                 else:
                     message = t("settings.temp_deleted_many", count=len(cleaned_files))
-                
-                self.cleanup_message.setStyleSheet("""
-                    QLabel {
-                        color: #27ae60;
+                self.cleanup_message.setStyleSheet(f"""
+                    QLabel {{
+                        color: {c['success']};
                         font-size: 14px;
-                        background-color: #1e3a2e;
+                        background-color: {c['bg_card']};
                         border-radius: 8px;
                         padding: 12px 15px;
-                        border: 1px solid #27ae60;
+                        border: 1px solid {c['success']};
                         margin-top: 10px;
-                    }
+                    }}
                 """)
             else:
                 message = t("settings.temp_not_found")
-                self.cleanup_message.setStyleSheet("""
-                    QLabel {
-                        color: #3498db;
+                self.cleanup_message.setStyleSheet(f"""
+                    QLabel {{
+                        color: {c['accent']};
                         font-size: 14px;
-                        background-color: #1e2a3a;
+                        background-color: {c['bg_card']};
                         border-radius: 8px;
                         padding: 12px 15px;
-                        border: 1px solid #3498db;
+                        border: 1px solid {c['accent']};
                         margin-top: 10px;
-                    }
+                    }}
                 """)
             
             self.cleanup_message.setText(message)
             self.cleanup_message.show()
-            
             self.update_temp_files_stats()
-            
             QTimer.singleShot(5000, lambda: self.cleanup_message.hide() if hasattr(self, 'cleanup_message') and self.cleanup_message else None)
             
         except Exception as e:
             if hasattr(self, 'cleanup_message') and self.cleanup_message is not None:
                 error_message = t("settings.error_cleanup", error=str(e))
                 self.cleanup_message.setText(error_message)
-                self.cleanup_message.setStyleSheet("""
-                    QLabel {
-                        color: #e74c3c;
+                self.cleanup_message.setStyleSheet(f"""
+                    QLabel {{
+                        color: {c['error']};
                         font-size: 14px;
-                        background-color: #3a1e1e;
+                        background-color: {c['bg_card']};
                         border-radius: 8px;
                         padding: 12px 15px;
-                        border: 1px solid #e74c3c;
+                        border: 1px solid {c['error']};
                         margin-top: 10px;
-                    }
+                    }}
                 """)
                 self.cleanup_message.show()
-                
                 QTimer.singleShot(7000, lambda: self.cleanup_message.hide() if hasattr(self, 'cleanup_message') and self.cleanup_message else None)
 
     def save_snow_state(self, enabled: bool) -> None:
         """Сохранение состояния снегопада"""
         self.snow_enabled = enabled
         log_info(f"Snow effect {'enabled' if enabled else 'disabled'}")
+
+    def save_theme_state(self, light_enabled: bool) -> None:
+        """Сохранение и применение темы"""
+        from theme_manager import theme_manager
+        from settings_manager import settings_manager
+
+        theme = "light" if light_enabled else "dark"
+        settings_manager.set_setting("theme", theme)
+        theme_manager.apply(theme)
+        self.theme_light = light_enabled
+        log_info(f"Theme changed to: {theme}")
+
+        # Обновляем главное окно
+        if self.parent_window and hasattr(self.parent_window, 'apply_theme'):
+            self.parent_window.apply_theme()
     
     def on_language_changed(self, index: int) -> None:
         """Обработка смены языка"""
@@ -936,7 +965,12 @@ class SettingsTab(BaseWidget):
         from PyQt6.QtWidgets import QMessageBox
         from settings_manager import settings_manager
         
-        lang_code = self.language_combo.itemData(index)
+        # Получаем код языка из кастомного комбобокса
+        if index < len(self.language_combo.items):
+            lang_code = self.language_combo.items[index][1]  # (text, data)
+        else:
+            return
+            
         localization = get_localization()
         
         settings_manager.set_setting("language", lang_code)
@@ -1081,31 +1115,31 @@ class SettingsTab(BaseWidget):
     
     def toggle_notification_sounds_availability(self, notifications_enabled: bool) -> None:
         """Включение/отключение доступности настройки звуков уведомлений"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         if hasattr(self, 'notification_sounds_toggle') and hasattr(self, 'sounds_setting'):
             self.notification_sounds_toggle.setEnabled(notifications_enabled)
             
             if notifications_enabled:
-                # Включено - обычный стиль
-                self.sounds_setting.setStyleSheet("""
-                    QWidget {
-                        background-color: #2d2d2d;
+                self.sounds_setting.setStyleSheet(f"""
+                    QWidget {{
+                        background-color: {c['bg_card']};
                         border-radius: 15px;
-                        border: 1px solid #404040;
-                    }
-                    QWidget:hover {
-                        border: 1px solid #555555;
-                    }
+                        border: 1px solid {c['card_border']};
+                    }}
+                    QWidget:hover {{
+                        border: 1px solid {c['border_hover']};
+                    }}
                 """)
-                # Восстанавливаем непрозрачность для всех дочерних элементов
                 self.sounds_setting.setGraphicsEffect(None)
             else:
-                # Отключено - затемненный стиль с полупрозрачностью
-                self.sounds_setting.setStyleSheet("""
-                    QWidget {
-                        background-color: #1a1a1a;
+                self.sounds_setting.setStyleSheet(f"""
+                    QWidget {{
+                        background-color: {c['bg_tertiary']};
                         border-radius: 15px;
-                        border: 1px solid #2d2d2d;
-                    }
+                        border: 1px solid {c['border_light']};
+                    }}
                 """)
                 from PyQt6.QtWidgets import QGraphicsOpacityEffect
                 opacity_effect = QGraphicsOpacityEffect()
@@ -1162,14 +1196,17 @@ class SettingsTab(BaseWidget):
         self.copied_fade_animation.start()
     def create_info_widget(self) -> QWidget:
         """Создание виджета с информацией о программе"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         info_widget = QWidget()
-        info_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        info_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_card']};
                 border-radius: 15px;
-                border: 1px solid #404040;
+                border: 1px solid {c['card_border']};
                 padding: 10px;
-            }
+            }}
         """)
         
         info_layout = QVBoxLayout(info_widget)
@@ -1182,21 +1219,10 @@ class SettingsTab(BaseWidget):
         pixmap = self.load_icon_pixmap("infologo.png", (48, 48))
         if not pixmap.isNull():
             logo_label.setPixmap(pixmap)
-            logo_label.setStyleSheet("""
-                QLabel {
-                    background: transparent;
-                    border: none;
-                }
-            """)
+            logo_label.setStyleSheet("QLabel { background: transparent; }")
         else:
             logo_label.setText("•")
-            logo_label.setStyleSheet("""
-                QLabel {
-                    font-size: 48px;
-                    background: transparent;
-                    border: none;
-                }
-            """)
+            logo_label.setStyleSheet("QLabel { font-size: 48px; background: transparent; }")
         
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_label.setMinimumSize(48, 48)
@@ -1205,27 +1231,27 @@ class SettingsTab(BaseWidget):
         title_layout.setSpacing(5)
         
         app_title = QLabel("UTILHELP")
-        app_title.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        app_title.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 28px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 margin-left: -5px;
-            }
+            }}
         """)
         
         version_label = QLabel(t("settings.version_label", version=self.get_app_version()))
-        version_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        version_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 16px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         
         title_layout.addWidget(app_title)
@@ -1238,48 +1264,48 @@ class SettingsTab(BaseWidget):
         info_layout.addLayout(header_layout)
         
         description = QLabel(t("settings.description_full"))
-        description.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        description.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 14px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 line-height: 1.6;
-            }
+            }}
         """)
         description.setWordWrap(True)
-        
         info_layout.addWidget(description)
         
         copyright_label = QLabel('© 2025-2026 UTILHELP. Icons by <a href="https://icons8.com" style="color: #888888; text-decoration: underline;">Icons8</a>')
-        copyright_label.setStyleSheet("""
-            QLabel {
-                color: #888888;
+        copyright_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_disabled']};
                 font-size: 12px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 margin-top: 10px;
-            }
+            }}
         """)
-        copyright_label.setOpenExternalLinks(True)  
+        copyright_label.setOpenExternalLinks(True)
         copyright_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        
         info_layout.addWidget(copyright_label)
         
         return info_widget
 
     def create_update_data_button(self) -> QWidget:
         """Создание кнопки обновления данных с GitHub"""
-        
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         update_widget = QWidget()
-        update_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        update_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_card']};
                 border-radius: 12px;
-                border: 1px solid #404040;
-            }
+                border: 1px solid {c['card_border']};
+            }}
         """)
         
         update_layout = QHBoxLayout(update_widget)
@@ -1290,29 +1316,29 @@ class SettingsTab(BaseWidget):
         text_layout.setSpacing(5)
         
         title_label = QLabel(t("settings.update_data"))
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         text_layout.addWidget(title_label)
         
         desc_label = QLabel(t("settings.update_data_desc"))
         desc_label.setWordWrap(True)
-        desc_label.setStyleSheet("""
-            QLabel {
-                color: #aaaaaa;
+        desc_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_hint']};
                 font-size: 12px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 line-height: 1.4;
-            }
+            }}
         """)
         text_layout.addWidget(desc_label)
         
@@ -1331,30 +1357,27 @@ class SettingsTab(BaseWidget):
             update_btn.setIcon(update_icon)
             update_btn.setIconSize(QSize(16, 16))
         
-        update_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #666666, stop:1 #555555);
-                color: white;
-                border: 1px solid #777777;
+        update_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
+                color: {c['text_primary']};
+                border: 1px solid {c['border']};
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #777777, stop:1 #666666);
-                border: 1px solid #888888;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #555555, stop:1 #444444);
-            }
-            QPushButton:disabled {
-                background: #3a3a3a;
-                color: #666666;
-                border: 1px solid #444444;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+                border: 1px solid {c['border_hover']};
+            }}
+            QPushButton:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
+            QPushButton:disabled {{
+                background-color: {c['bg_tertiary']};
+                color: {c['text_disabled']};
+                border: 1px solid {c['border_light']};
+            }}
         """)
         
         update_layout.addWidget(update_btn, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -1364,16 +1387,16 @@ class SettingsTab(BaseWidget):
         
         self.last_update_label = QLabel()
         self.update_last_update_time()
-        self.last_update_label.setStyleSheet("""
-            QLabel {
-                color: #888888;
+        self.last_update_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_hint']};
                 font-size: 11px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 padding-top: 5px;
                 margin-left: -2px;
-            }
+            }}
         """)
         bottom_layout.addWidget(self.last_update_label)
         
@@ -1389,14 +1412,17 @@ class SettingsTab(BaseWidget):
 
     def create_simple_update_widget(self) -> QWidget:
         """Создание простого виджета обновлений"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         update_widget = QWidget()
-        update_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        update_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_card']};
                 border-radius: 15px;
-                border: 1px solid #404040;
+                border: 1px solid {c['card_border']};
                 padding: 10px;
-            }
+            }}
         """)
         
         layout = QVBoxLayout(update_widget)
@@ -1410,29 +1436,29 @@ class SettingsTab(BaseWidget):
         text_layout.setSpacing(5)
         
         title_label = QLabel(t("settings.update_program"))
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 18px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 margin-left: -2px;
-            }
+            }}
         """)
         text_layout.addWidget(title_label)
         
         desc_label = QLabel(t("settings.update_program_desc"))
-        desc_label.setStyleSheet("""
-            QLabel {
-                color: #aaaaaa;
+        desc_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_hint']};
                 font-size: 13px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 margin-left: 1px;
-            }
+            }}
         """)
         text_layout.addWidget(desc_label)
         
@@ -1441,12 +1467,7 @@ class SettingsTab(BaseWidget):
         
         button_container = QWidget()
         button_container.setFixedHeight(60)
-        button_container.setStyleSheet("""
-            QWidget {
-                background: transparent;
-                border: none;
-            }
-        """)
+        button_container.setStyleSheet("QWidget { background: transparent; }")
         button_container_layout = QVBoxLayout(button_container)
         button_container_layout.setContentsMargins(0, 0, 0, 0)
         
@@ -1462,25 +1483,22 @@ class SettingsTab(BaseWidget):
             check_button.setIcon(update_icon)
             check_button.setIconSize(QSize(16, 16))
         
-        check_button.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #666666, stop:1 #555555);
-                color: white;
-                border: 1px solid #666666;
+        check_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
+                color: {c['text_primary']};
+                border: 1px solid {c['border']};
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #777777, stop:1 #666666);
-                border: 1px solid #777777;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #555555, stop:1 #444444);
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {c['bg_hover']};
+                border: 1px solid {c['border_hover']};
+            }}
+            QPushButton:pressed {{
+                background-color: {c['bg_pressed']};
+            }}
         """)
         
         button_container_layout.addStretch()
@@ -1492,47 +1510,47 @@ class SettingsTab(BaseWidget):
         
         separator = QWidget()
         separator.setFixedHeight(1)
-        separator.setStyleSheet("background-color: #404040;")
+        separator.setStyleSheet(f"background-color: {c['border']};")
         layout.addWidget(separator)
         
         info_title = QLabel(t("settings.update_info_title"))
-        info_title.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        info_title.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 14px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         layout.addWidget(info_title)
         
         info_text = QLabel(t("settings.update_info_text"))
         info_text.setWordWrap(True)
-        info_text.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        info_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 12px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 line-height: 1.5;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         layout.addWidget(info_text)
         
         security_info = QLabel(t("settings.update_security"))
         security_info.setWordWrap(True)
-        security_info.setStyleSheet("""
-            QLabel {
-                color: #888888;
+        security_info.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_hint']};
                 font-size: 11px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 font-style: italic;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         layout.addWidget(security_info)
         
@@ -1540,14 +1558,17 @@ class SettingsTab(BaseWidget):
 
     def create_contacts_widget(self) -> QWidget:
         """Создание виджета с контактной информацией"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         contacts_widget = QWidget()
-        contacts_widget.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        contacts_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_card']};
                 border-radius: 15px;
-                border: 1px solid #404040;
+                border: 1px solid {c['card_border']};
                 padding: 10px;
-            }
+            }}
         """)
         
         contacts_layout = QVBoxLayout(contacts_widget)
@@ -1555,19 +1576,42 @@ class SettingsTab(BaseWidget):
         contacts_layout.setSpacing(10)
         
         header_label = QLabel(t("settings.contact_developer"))
-        header_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        header_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 18px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 margin-bottom: 5px;
-            }
+            }}
         """)
         contacts_layout.addWidget(header_label)
         
+        link_label_style = f"""
+            QLabel {{
+                color: {c['accent']};
+                font-size: 13px;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                background: transparent;
+                border: none;
+            }}
+        """
+        caption_style = f"""
+            QLabel {{
+                color: {c['text_secondary']};
+                font-size: 13px;
+                font-weight: bold;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                background: transparent;
+                border: none;
+                min-width: 80px;
+            }}
+        """
+        icon_style = "background: transparent; border: none; margin-top: 1px;"
+
+        # GitHub
         github_layout = QHBoxLayout()
         github_layout.setSpacing(8)
         github_icon = QLabel()
@@ -1576,29 +1620,11 @@ class SettingsTab(BaseWidget):
             github_icon.setPixmap(pixmap)
         else:
             github_icon.setText("•")
-        github_icon.setStyleSheet("background: transparent; border: none; margin-top: 1px;")
+        github_icon.setStyleSheet(icon_style)
         github_label = QLabel("GitHub:")
-        github_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 13px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                min-width: 80px;
-            }
-        """)
-        github_link = QLabel('<a href="https://github.com/al1ster13/UTILHELP" style="color: #3498db; text-decoration: none;">https://github.com/al1ster13/UTILHELP</a>')
-        github_link.setStyleSheet("""
-            QLabel {
-                color: #3498db;
-                font-size: 13px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-        """)
+        github_label.setStyleSheet(caption_style)
+        github_link = QLabel('<a href="https://github.com/al1ster13/UTILHELP" style="color: ' + c['accent'] + '; text-decoration: none;">https://github.com/al1ster13/UTILHELP</a>')
+        github_link.setStyleSheet(link_label_style)
         github_link.setOpenExternalLinks(True)
         github_layout.addWidget(github_icon)
         github_layout.addWidget(github_label)
@@ -1606,6 +1632,7 @@ class SettingsTab(BaseWidget):
         github_layout.addStretch()
         contacts_layout.addLayout(github_layout)
         
+        # Email
         email_layout = QHBoxLayout()
         email_layout.setSpacing(8)
         email_icon = QLabel()
@@ -1614,46 +1641,33 @@ class SettingsTab(BaseWidget):
             email_icon.setPixmap(pixmap)
         else:
             email_icon.setText("•")
-        email_icon.setStyleSheet("background: transparent; border: none; margin-top: 1px;")
+        email_icon.setStyleSheet(icon_style)
         email_label = QLabel("Email:")
-        email_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 13px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                min-width: 80px;
-            }
-        """)
+        email_label.setStyleSheet(caption_style)
         email_link = QLabel('utilhelp@yandex.com')
-        email_link.setStyleSheet("""
-            QLabel {
-                color: #3498db;
+        email_link.setStyleSheet(f"""
+            QLabel {{
+                color: {c['accent']};
                 font-size: 13px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
-            }
-            QLabel:hover {
-                color: #5dade2;
-                text-decoration: underline;
-            }
+            }}
+            QLabel:hover {{ text-decoration: underline; }}
         """)
         email_link.mousePressEvent = lambda event: self.copy_email_to_clipboard()
         
         self.copied_label = QLabel("Скопировано!")
-        self.copied_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.copied_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['success']};
                 font-size: 12px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 margin-left: 10px;
-            }
+            }}
         """)
         self.copied_label.setVisible(False)
         
@@ -1676,6 +1690,7 @@ class SettingsTab(BaseWidget):
         email_layout.addStretch()
         contacts_layout.addLayout(email_layout)
         
+        # Telegram
         telegram_layout = QHBoxLayout()
         telegram_layout.setSpacing(8)
         telegram_icon = QLabel()
@@ -1684,29 +1699,11 @@ class SettingsTab(BaseWidget):
             telegram_icon.setPixmap(pixmap)
         else:
             telegram_icon.setText("•")
-        telegram_icon.setStyleSheet("background: transparent; border: none; margin-top: 1px;")
+        telegram_icon.setStyleSheet(icon_style)
         telegram_label = QLabel("Telegram:")
-        telegram_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 13px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-                min-width: 80px;
-            }
-        """)
-        telegram_link = QLabel('<a href="https://t.me/UTILHELP" style="color: #3498db; text-decoration: none;">https://t.me/UTILHELP</a>')
-        telegram_link.setStyleSheet("""
-            QLabel {
-                color: #3498db;
-                font-size: 13px;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: transparent;
-                border: none;
-            }
-        """)
+        telegram_label.setStyleSheet(caption_style)
+        telegram_link = QLabel('<a href="https://t.me/UTILHELP" style="color: ' + c['accent'] + '; text-decoration: none;">https://t.me/UTILHELP</a>')
+        telegram_link.setStyleSheet(link_label_style)
         telegram_link.setOpenExternalLinks(True)
         telegram_layout.addWidget(telegram_icon)
         telegram_layout.addWidget(telegram_label)
@@ -1715,15 +1712,15 @@ class SettingsTab(BaseWidget):
         contacts_layout.addLayout(telegram_layout)
         
         info_text = QLabel(t("settings.contact_info"))
-        info_text.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        info_text.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 12px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
                 border: none;
                 line-height: 1.4;
-            }
+            }}
         """)
         info_text.setWordWrap(True)
         contacts_layout.addWidget(info_text)
@@ -1925,3 +1922,114 @@ class SettingsTab(BaseWidget):
                         stop:0 #555555, stop:1 #444444);
                 }
             """)
+
+    def apply_theme(self):
+        """Применить тему ко всем элементам настроек"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        
+        # Обновляем основной стиль
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
+                border-radius: 10px;
+            }}
+        """)
+        
+        # Обновляем стиль боковой панели
+        if hasattr(self, 'title_label'):
+            sidebar = self.title_label.parent()
+            if sidebar:
+                sidebar.setStyleSheet(f"""
+                    QWidget {{
+                        background-color: {c['bg_sidebar']};
+                        border-top-left-radius: 10px;
+                        border-bottom-left-radius: 10px;
+                    }}
+                """)
+            
+            self.title_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {c['text_primary']};
+                    font-size: 18px;
+                    font-weight: bold;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    margin: 0px 0px 15px 0px;
+                    letter-spacing: 1px;
+                }}
+            """)
+        
+        # Обновляем стиль scroll_area
+        if hasattr(self, 'scroll_area'):
+            self.scroll_area.setStyleSheet(f"""
+                QScrollArea {{
+                    background-color: {c['bg_main']};
+                    border: none;
+                    border-top-right-radius: 10px;
+                    border-bottom-right-radius: 10px;
+                }}
+                QScrollBar:vertical {{
+                    background-color: {c['scrollbar_bg']};
+                    width: 12px;
+                    border-radius: 6px;
+                    margin: 0px;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {c['scrollbar_handle']};
+                    border-radius: 6px;
+                    min-height: 30px;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {c['scrollbar_hover']};
+                }}
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                    height: 0px;
+                }}
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                    background: none;
+                }}
+            """)
+        
+        # Обновляем стиль content_area
+        if hasattr(self, 'content_area'):
+            self.content_area.setStyleSheet(f"""
+                QWidget {{
+                    background-color: {c['bg_main']};
+                    border: none;
+                }}
+            """)
+        
+        # Перезагружаем иконки кнопок меню
+        for btn in [self.interface_btn, self.temp_files_btn, self.updates_btn, 
+                    self.about_btn, self.contacts_btn]:
+            if btn and hasattr(btn, 'property'):
+                icon_name = btn.property("icon_name")
+                if icon_name:
+                    pixmap = self.load_icon_pixmap(icon_name)
+                    if pixmap and not pixmap.isNull():
+                        from PyQt6.QtGui import QIcon
+                        from PyQt6.QtCore import QSize
+                        btn.setIcon(QIcon(pixmap))
+                        btn.setIconSize(QSize(16, 16))
+        
+        # Обновляем стили кнопок меню
+        if hasattr(self, 'interface_btn'):
+            # Определяем какая кнопка активна
+            active_btn = None
+            for btn in [self.interface_btn, self.temp_files_btn, self.updates_btn, 
+                       self.about_btn, self.contacts_btn]:
+                if btn and 'bg_input' in btn.styleSheet():
+                    active_btn = btn
+                    break
+            
+            # Обновляем стили всех кнопок
+            for btn in [self.interface_btn, self.temp_files_btn, self.updates_btn, 
+                       self.about_btn, self.contacts_btn]:
+                if btn:
+                    if btn == active_btn:
+                        btn.setStyleSheet(self.get_active_button_style())
+                    else:
+                        btn.setStyleSheet(self.get_inactive_button_style())
+        
+        # Перерисовываем текущую страницу настроек
+        self.show_interface_settings()
