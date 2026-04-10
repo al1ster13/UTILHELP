@@ -22,8 +22,10 @@ class DriverInfoPanel(BaseInfoPanel):
     
     def _get_icon_path(self, logo_name: str) -> Optional[str]:
         """Получить путь к иконке драйвера"""
-        from resource_path import get_program_image_path
-        return get_program_image_path(logo_name)
+        from logo_manager import get_logo_manager
+        logo_manager = get_logo_manager()
+        # Получаем путь к кэшированному логотипу или локальному fallback
+        return logo_manager.get_cached_logo_path(logo_name)
     
     def _add_custom_info(self, item_data: Dict[str, Any]):
         """Добавить специфичную информацию для драйверов"""
@@ -254,7 +256,6 @@ class DriversTab(QWidget):
                 font-size: 16px;
                 font-weight: bold;
                 outline: none;
-                padding-left: 2px;
             }}
             QPushButton:hover {{ background-color: {c['bg_hover']}; }}
             QPushButton:pressed {{ background-color: {c['border_hover']}; }}
@@ -402,7 +403,6 @@ class DriversTab(QWidget):
     
     def display_drivers_grid(self):
         """Отображение драйверов в виде сетки"""
-        # Настраиваем отступы для режима плитки
         self.drivers_grid.setVerticalSpacing(50)
         self.drivers_grid.setHorizontalSpacing(120)
         
@@ -432,11 +432,9 @@ class DriversTab(QWidget):
     
     def display_drivers_list(self):
         """Отображение драйверов в виде списка"""
-        # Настраиваем отступы для режима списка
-        self.drivers_grid.setVerticalSpacing(15)  # Уменьшенный отступ между карточками
+        self.drivers_grid.setVerticalSpacing(15)  
         self.drivers_grid.setHorizontalSpacing(0)
         
-        # Очищаем текущий layout
         for i in reversed(range(self.drivers_grid.count())):
             child = self.drivers_grid.itemAt(i).widget()
             if child:
@@ -560,15 +558,22 @@ class DriversTab(QWidget):
         card_layout.addWidget(top_container)
         
         from image_helper import load_program_image
-        pixmap = load_program_image(driver["logo"])
+        
+        logo_label = QLabel("🔧")
+        
+        def on_logo_loaded(logo_name, pixmap):
+            if pixmap and not pixmap.isNull():
+                scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                if theme_manager.is_light():
+                    scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
+                logo_label.setPixmap(scaled_pixmap)
+        
+        pixmap = load_program_image(driver["logo"], callback=on_logo_loaded)
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             if theme_manager.is_light():
                 scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
-            logo_label = QLabel()
             logo_label.setPixmap(scaled_pixmap)
-        else:
-            logo_label = QLabel("🔧")
 
         logo_container = QWidget()
         logo_container.setFixedSize(200, 100)
@@ -732,12 +737,23 @@ class DriversTab(QWidget):
         card_layout.setSpacing(15)
 
         from image_helper import load_program_image
-        pixmap = load_program_image(driver["logo"])
+        
+        logo_label = QLabel("🔧")
+        logo_label.setFixedSize(60, 60)
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        def on_logo_loaded(logo_name, pixmap):
+            if pixmap and not pixmap.isNull():
+                scaled_pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                if theme_manager.is_light():
+                    scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
+                logo_label.setPixmap(scaled_pixmap)
+        
+        pixmap = load_program_image(driver["logo"], callback=on_logo_loaded)
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             if theme_manager.is_light():
                 scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
-            logo_label = QLabel()
             logo_label.setPixmap(scaled_pixmap)
         else:
             logo_label = QLabel("💿")
@@ -979,7 +995,6 @@ class DriversTab(QWidget):
             }}
         """)
         
-        # Обновляем заголовок
         if hasattr(self, 'title_label'):
             self.title_label.setStyleSheet(f"""
                 QLabel {{
@@ -1006,7 +1021,6 @@ class DriversTab(QWidget):
                 QLineEdit:hover {{ border: 1px solid {c['border_hover']}; }}
             """)
         
-        # Обновляем стили скроллбара
         if hasattr(self, 'scroll_area'):
             self.scroll_area.setStyleSheet(f"""
                 QScrollArea {{
@@ -1050,27 +1064,37 @@ class DriversTab(QWidget):
             QPushButton:hover {{ background-color: {c['bg_hover']}; }}
             QPushButton:pressed {{ background-color: {c['border_hover']}; }}
         """
+        
+        btn_style_with_padding = f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
+                border: none;
+                border-radius: 8px;
+                color: {c['text_primary']};
+                font-size: 16px;
+                font-weight: bold;
+                outline: none;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['border_hover']}; }}
+        """
+        
         if hasattr(self, 'scan_button'):
             self.scan_button.setStyleSheet(btn_style)
-            # Обновляем иконку сканирования
             self.update_scan_button_icon(False)
         if hasattr(self, 'view_mode_button'):
-            self.view_mode_button.setStyleSheet(btn_style)
-            # Обновляем иконку режима просмотра
+            self.view_mode_button.setStyleSheet(btn_style_with_padding)
             self.update_view_mode_button()
         
-        # Обновляем тему category_filter
         if hasattr(self, 'category_filter') and hasattr(self.category_filter, 'apply_theme'):
             self.category_filter.apply_theme()
         
-        # Обновляем тему info_panel
         if hasattr(self, 'info_panel') and hasattr(self.info_panel, 'apply_theme'):
             self.info_panel.apply_theme()
         
         self.display_drivers()
         self.search_input.clearFocus()
         
-        # Принудительно обновляем все виджеты
         self.update()
         if hasattr(self, 'drivers_content'):
             self.drivers_content.update()
@@ -1094,43 +1118,37 @@ class DriversTab(QWidget):
         """Переключение режима просмотра между плиткой и списком"""
         from settings_manager import settings_manager
         
-        # Переключаем режим
         self.view_mode = "list" if self.view_mode == "grid" else "grid"
         
         settings_manager.set_setting("view_mode", self.view_mode)
         
-        # Синхронизируем с programs_tab если он существует
         if hasattr(self, 'main_window') and hasattr(self.main_window, 'programs_tab'):
             self.main_window.programs_tab.sync_view_mode(self.view_mode)
         
         self.update_view_mode_button()
         
-        # Перерисовываем драйверы
         self.display_drivers()
     
     def update_view_mode_button(self):
         """Обновление иконки и подсказки кнопки режима просмотра"""
         from resource_path import get_icon_path
-        from PyQt6.QtGui import QIcon, QPixmap, QPainter
-        from PyQt6.QtCore import QSize, Qt
+        from PyQt6.QtGui import QIcon, QPixmap
+        from PyQt6.QtCore import QSize
         from theme_manager import theme_manager, colorize_pixmap
 
         icon_name = "iconlist.png" if self.view_mode == "grid" else "icontab.png"
         icon_path = get_icon_path(icon_name)
         if icon_path:
             original_pixmap = QPixmap(icon_path)
-            centered_pixmap = QPixmap(35, 35)
-            centered_pixmap.fill(Qt.GlobalColor.transparent)
-            scaled_pixmap = original_pixmap.scaled(27, 27, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            if theme_manager.is_light():
-                scaled_pixmap = colorize_pixmap(scaled_pixmap, theme_manager.colors['text_secondary'])
-            painter = QPainter(centered_pixmap)
-            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-            painter.drawPixmap((35 - scaled_pixmap.width()) // 2, (35 - scaled_pixmap.height()) // 2, scaled_pixmap)
-            painter.end()
-            self.view_mode_button.setIcon(QIcon(centered_pixmap))
-            self.view_mode_button.setIconSize(QSize(35, 35))
-            self.view_mode_button.setText("")
+            if not original_pixmap.isNull():
+                scaled_pixmap = original_pixmap.scaled(21, 21, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                if theme_manager.is_light():
+                    scaled_pixmap = colorize_pixmap(scaled_pixmap, theme_manager.colors['text_secondary'])
+                self.view_mode_button.setIcon(QIcon(scaled_pixmap))
+                self.view_mode_button.setIconSize(QSize(21, 21))
+                self.view_mode_button.setText("")
+            else:
+                self.view_mode_button.setText("☰" if self.view_mode == "grid" else "⊞")
         else:
             self.view_mode_button.setText("☰" if self.view_mode == "grid" else "⊞")
 
@@ -1206,10 +1224,9 @@ class DriversTab(QWidget):
     def cleanup(self):
         """Очистка ресурсов при закрытии вкладки"""
         try:
-            # Останавливаем фоновый сканер если он запущен
             if self.background_scanner and self.background_scanner.isRunning():
                 self.background_scanner.quit()
-                self.background_scanner.wait(3000)  # Ждем максимум 3 секунды
+                self.background_scanner.wait(3000)  
                 if self.background_scanner.isRunning():
                     self.background_scanner.terminate()
                     self.background_scanner.wait(1000)
@@ -1218,7 +1235,6 @@ class DriversTab(QWidget):
             if hasattr(self, 'combo_box') and self.combo_box:
                 self.combo_box.currentIndexChanged.disconnect()
             
-            # Очищаем анимации
             if hasattr(self, 'info_panel') and self.info_panel:
                 if hasattr(self.info_panel, 'fade_animation'):
                     self.info_panel.fade_animation.stop()
@@ -1239,7 +1255,6 @@ class DriversTab(QWidget):
         if hasattr(self, 'category_filter'):
             current_data = self.category_filter.currentData()
             
-            # Пересоздаем список категорий с новыми переводами
             self.category_filter.clear()
             self.category_filter.addItem(t("categories.all"), "")
             self.category_filter.addItem(t("categories.favorites"), "favorites")
@@ -1257,13 +1272,11 @@ class DriversTab(QWidget):
                 translated_category = translate_category(category)
                 self.category_filter.addItem(translated_category, category)
             
-            # Восстанавливаем выбранный элемент
             for i, (text, data) in enumerate(self.category_filter.items):
                 if data == current_data:
                     self.category_filter.setCurrentIndex(i)
                     break
         
-        # Перерисовываем карточки драйверов
         self.display_drivers()
         
         if hasattr(self, 'info_panel') and self.info_panel.isVisible():
