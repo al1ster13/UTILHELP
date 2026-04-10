@@ -6,14 +6,12 @@ import traceback
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QTimer, QSharedMemory
 
-# Импортируем скомпилированные Qt ресурсы
 try:
     import resources_rc
     print("✅ Qt resources loaded")
 except ImportError:
     print("⚠️ Qt resources not found, using fallback to file system")
 
-# Извлекаем ресурсы в файловую систему (звуки для QSoundEffect)
 try:
     from resource_extractor import extract_resources_on_startup
     if extract_resources_on_startup():
@@ -33,7 +31,6 @@ from logger import get_logger, log_info, log_error, log_warning
 def is_portable_mode():
     """Определение портативного режима по наличию маркера"""
     try:
-        # Получаем путь к папке с программой
         if getattr(sys, 'frozen', False):
             app_dir = os.path.dirname(sys.executable)
         else:
@@ -50,16 +47,13 @@ def get_app_data_dir():
     import sys
     
     if is_portable_mode():
-        # В портативном режиме используем папку программы
         if getattr(sys, 'frozen', False):
             return os.path.dirname(sys.executable)
         else:
             return os.path.dirname(os.path.abspath(__file__))
     else:
-        # В обычном режиме ВСЕГДА используем AppData
         appdata = os.environ.get('APPDATA')
         if not appdata:
-            # Fallback если APPDATA не определен
             import tempfile
             return os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
         
@@ -75,7 +69,6 @@ def get_app_data_dir():
             return utilhelp_data
         except Exception as e:
             print(f"✗ Error accessing AppData: {e}")
-            # Fallback на временную папку
             import tempfile
             temp_data = os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
             try:
@@ -118,7 +111,6 @@ def setup_portable_environment():
         print(f"  - Downloads: {downloads_dir}")
         
         if is_portable_mode():
-            # В портативном режиме меняем рабочую директорию
             os.chdir(app_data_dir)
             print(f"✓ Portable mode enabled - working directory: {app_data_dir}")
         
@@ -126,7 +118,6 @@ def setup_portable_environment():
         
     except Exception as e:
         log_error(f"✗ Error setting up data directories: {e}")
-        # В крайнем случае используем временную папку
         import tempfile
         temp_data = os.path.join(tempfile.gettempdir(), 'UTILHELP_data')
         try:
@@ -210,7 +201,14 @@ if __name__ == "__main__":
     
     log_info("Создание QApplication...")
     app = QApplication(sys.argv)
-    
+
+    try:
+        from theme_manager import theme_manager
+        theme_manager.load_from_settings()
+        log_info("Тема применена")
+    except Exception as e:
+        log_error(f"Ошибка применения темы: {e}")
+
     from resource_path import get_icon_path
     from PyQt6.QtGui import QIcon
     
@@ -218,7 +216,6 @@ if __name__ == "__main__":
     if icon_path:
         app.setWindowIcon(QIcon(icon_path))
     else:
-        # Fallback на PNG иконку
         png_icon_path = get_icon_path("logo64x64.png")
         if png_icon_path:
             app.setWindowIcon(QIcon(png_icon_path))
@@ -284,7 +281,6 @@ if __name__ == "__main__":
                 os.makedirs(subfolder, exist_ok=True)
                 
                 if os.path.exists(subfolder) and os.access(subfolder, os.W_OK):
-                    # Принудительно устанавливаем новую папку в менеджере
                     temp_manager._temp_dir = subfolder
                     break
             except Exception as e:
@@ -297,6 +293,9 @@ if __name__ == "__main__":
     
     print("Создание главного окна...")
     try:
+        from theme_manager import theme_manager
+        theme_manager.load_from_settings()
+
         window = MainWindow()
         print("Главное окно создано успешно")
     except Exception as e:
