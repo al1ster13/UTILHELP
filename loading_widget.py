@@ -12,11 +12,13 @@ class LoadingWidget(QWidget):
     
     def setup_ui(self):
         """Настройка интерфейса"""
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
                 border-radius: 10px;
-            }
+            }}
         """)
         
         layout = QVBoxLayout(self)
@@ -207,11 +209,13 @@ class NoInternetWidget(QWidget):
     
     def setup_ui(self):
         """Настройка интерфейса"""
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
                 border-radius: 10px;
-            }
+            }}
         """)
         
         layout = QVBoxLayout(self)
