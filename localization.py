@@ -23,9 +23,7 @@ class Localization:
         """Загрузить все переводы"""
         import sys
         
-        # Определяем путь к папке locales
         if getattr(sys, 'frozen', False):
-            # sys._MEIPASS это _internal, нам нужен родительский каталог
             base_path = os.path.dirname(sys.executable)
         else:
             base_path = os.path.dirname(os.path.abspath(__file__))
@@ -109,7 +107,6 @@ class Localization:
         return self.available_languages.get(lang_code, lang_code)
 
 
-# Глобальный экземпляр локализации
 _localization = None
 
 
@@ -136,10 +133,12 @@ def translate_category(category: str) -> str:
     Returns:
         Переведенное название категории
     """
-    # Маппинг русских категорий на ключи переводов
     category_mapping = {
         "Браузеры": "categories.browsers",
         "Архиваторы": "categories.archivers",
+        "Графика": "categories.graphics",
+        "Дизайн": "categories.design",
+        "Игровые платформы": "categories.gaming_platforms",
         "Медиа": "categories.media",
         "Офис": "categories.office",
         "Разработка": "categories.development",
@@ -157,7 +156,6 @@ def translate_category(category: str) -> str:
     if category in category_mapping:
         return t(category_mapping[category])
     
-    # Иначе возвращаем как есть
     return category
 
 
@@ -176,7 +174,6 @@ def get_localized_description(item_data: dict) -> str:
     if current_lang == "en" and "description_en" in item_data:
         return item_data["description_en"]
     
-    # Иначе возвращаем русское описание (по умолчанию)
     return item_data.get("description", "")
 
 
@@ -195,7 +192,6 @@ def get_localized_news_title(news_item: dict) -> str:
     if current_lang == "en" and "title_en" in news_item:
         return news_item["title_en"]
     
-    # Иначе возвращаем русский заголовок (по умолчанию)
     return news_item.get("title", "")
 
 
