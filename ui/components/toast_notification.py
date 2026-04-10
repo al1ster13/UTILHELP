@@ -1,5 +1,5 @@
 """
-Кастомные toast-уведомления в стиле Steam
+Кастомные уведомления
 """
 from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, QUrl
@@ -9,8 +9,6 @@ from resource_path import get_icon_path, get_sound_path
 
 
 class ToastNotification(QWidget):
-    """Toast-уведомление в стиле Steam"""
-    
     def __init__(self, title: str, message: str, icon_name: str = "complete.png", 
                  duration: int = 5000, notification_type: str = "success", parent=None,
                  on_click=None, play_sound: bool = True):
@@ -49,12 +47,10 @@ class ToastNotification(QWidget):
         self.fade_out_animation.setEasingCurve(QEasingCurve.Type.InCubic)
         self.fade_out_animation.finished.connect(self.close)
         
-        # Таймер автоматического закрытия
         self.close_timer = QTimer()
         self.close_timer.setSingleShot(True)
         self.close_timer.timeout.connect(self.start_fade_out)
         
-        # Звуковой эффект
         self.sound_effect = None
         if self.play_sound:
             self._setup_sound()
@@ -64,7 +60,6 @@ class ToastNotification(QWidget):
     def _setup_sound(self) -> None:
         """Настройка звукового эффекта"""
         try:
-            # Выбираем звук в зависимости от типа уведомления
             if self.notification_type == "error":
                 sound_file = "utilhelp-notification-error.wav"
             else:
@@ -80,41 +75,15 @@ class ToastNotification(QWidget):
     
     def _setup_ui(self, title: str, message: str, icon_name: str) -> None:
         """Настройка интерфейса"""
-        colors = {
-            "success": {
-                "bg": "#2d2d2d",
-                "border": "#27ae60",
-                "title": "#ffffff",
-                "message": "#b0b0b0"
-            },
-            "error": {
-                "bg": "#2d2d2d",
-                "border": "#e74c3c",
-                "title": "#ffffff",
-                "message": "#b0b0b0"
-            },
-            "info": {
-                "bg": "#2d2d2d",
-                "border": "#3498db",
-                "title": "#ffffff",
-                "message": "#b0b0b0"
-            },
-            "warning": {
-                "bg": "#2d2d2d",
-                "border": "#f39c12",
-                "title": "#ffffff",
-                "message": "#b0b0b0"
-            }
-        }
-        
-        color_scheme = colors.get(self.notification_type, colors["info"])
-        
-        # Основной контейнер
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
         container = QWidget()
         container.setStyleSheet(f"""
             QWidget {{
-                background-color: {color_scheme['bg']};
+                background-color: {c['bg_secondary']};
                 border-radius: 8px;
+                border: 1px solid {c['border']};
             }}
         """)
         
@@ -122,7 +91,6 @@ class ToastNotification(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(container)
         
-        # Внутренний layout
         content_layout = QHBoxLayout(container)
         content_layout.setContentsMargins(15, 12, 15, 12)
         content_layout.setSpacing(12)
@@ -132,11 +100,10 @@ class ToastNotification(QWidget):
         if icon_path:
             pixmap = QPixmap(icon_path)
             if not pixmap.isNull():
-                scaled_pixmap = pixmap.scaled(
-                    24, 24, 
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
+                from theme_manager import colorize_pixmap
+                if theme_manager.is_light():
+                    pixmap = colorize_pixmap(pixmap, c['text_secondary'])
+                scaled_pixmap = pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                 icon_label.setPixmap(scaled_pixmap)
         icon_label.setFixedSize(24, 24)
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -148,7 +115,7 @@ class ToastNotification(QWidget):
         title_label = QLabel(title)
         title_label.setStyleSheet(f"""
             QLabel {{
-                color: {color_scheme['title']};
+                color: {c['text_primary']};
                 font-size: 13px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
@@ -159,11 +126,10 @@ class ToastNotification(QWidget):
         title_label.setWordWrap(True)
         text_layout.addWidget(title_label)
         
-        # Сообщение
         message_label = QLabel(message)
         message_label.setStyleSheet(f"""
             QLabel {{
-                color: {color_scheme['message']};
+                color: {c['text_secondary']};
                 font-size: 11px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
@@ -179,20 +145,20 @@ class ToastNotification(QWidget):
         close_btn = QLabel("✕")
         close_btn.setFixedSize(20, 20)
         close_btn.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        close_btn.setStyleSheet("""
-            QLabel {
-                color: #666666;
+        close_btn.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_disabled']};
                 font-size: 16px;
                 font-weight: bold;
                 background: transparent;
                 border: none;
                 border-radius: 10px;
                 outline: none;
-            }
-            QLabel:hover {
-                color: #ffffff;
-                background-color: #404040;
-            }
+            }}
+            QLabel:hover {{
+                color: {c['text_primary']};
+                background-color: {c['bg_hover']};
+            }}
         """)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -201,24 +167,20 @@ class ToastNotification(QWidget):
     
     def show_notification(self) -> None:
         """Показать уведомление"""
-        # Позиционирование в правом нижнем углу
         screen = self.screen().geometry()
         x = screen.width() - self.width() - 20
         y = screen.height() - self.height() - 60
         self.move(x, y)
         
-        # Показать и запустить анимацию
         self.show()
         self.fade_in_animation.start()
         
-        # Воспроизвести звук
         if self.sound_effect:
             try:
                 self.sound_effect.play()
             except:
                 pass
         
-        # Запустить таймер закрытия
         self.close_timer.start(self.duration)
     
     def start_fade_out(self) -> None:
@@ -235,7 +197,7 @@ class ToastNotification(QWidget):
 
 
 class ToastNotificationManager:
-    """Менеджер toast-уведомлений"""
+    """Менеджер уведомлений"""
     
     def __init__(self, parent=None):
         self.parent = parent
@@ -247,7 +209,6 @@ class ToastNotificationManager:
                          duration: int = 5000, notification_type: str = "success",
                          on_click=None, play_sound: bool = True) -> None:
         """Показать новое уведомление"""
-        # Удаляем старые уведомления если их слишком много
         if len(self.active_notifications) >= self.max_notifications:
             oldest = self.active_notifications.pop(0)
             oldest.start_fade_out()
@@ -258,14 +219,11 @@ class ToastNotificationManager:
         
         self.active_notifications.append(notification)
         
-        # Позиционируем с учетом других уведомлений
         self._position_notification(notification)
         
-        # Показываем (но не вызываем show_notification у самого уведомления)
         notification.show()
         notification.fade_in_animation.start()
         
-        # Воспроизводим звук
         if play_sound and notification.sound_effect:
             try:
                 notification.sound_effect.play()
@@ -274,7 +232,6 @@ class ToastNotificationManager:
         
         notification.close_timer.start(duration)
         
-        # Удаляем из списка после закрытия
         notification.fade_out_animation.finished.connect(
             lambda: self._remove_notification(notification)
         )
@@ -284,10 +241,8 @@ class ToastNotificationManager:
         screen = notification.screen().geometry()
         x = screen.width() - notification.width() - 20
         
-        # Вычисляем Y с учетом других уведомлений (кроме текущего)
         y = screen.height() - notification.height() - 60
         
-        # Считаем все уведомления кроме текущего
         for existing in self.active_notifications:
             if existing != notification and existing.isVisible():
                 y -= (existing.height() + self.spacing)
@@ -299,7 +254,6 @@ class ToastNotificationManager:
         if notification in self.active_notifications:
             self.active_notifications.remove(notification)
         
-        # Переместить оставшиеся уведомления
         self._reposition_notifications()
     
     def _reposition_notifications(self) -> None:
@@ -315,7 +269,6 @@ class ToastNotificationManager:
                 current_pos = notification.pos()
                 new_y = y - notification.height()
                 
-                # Плавное перемещение
                 notification.move(current_pos.x(), new_y)
                 y = new_y - self.spacing
     
@@ -327,7 +280,6 @@ class ToastNotificationManager:
         
         play_sound = settings_manager.get_setting("notification_sounds", True)
         
-        # Определяем тип независимо от языка
         is_driver = item_type in ["драйвер", "driver", "drivers"]
         
         if success:
@@ -339,7 +291,6 @@ class ToastNotificationManager:
             icon = "completenotif.png"
             notification_type = "success"
             
-            # Callback для перехода в библиотеку при клике
             def go_to_library():
                 self._open_library()
             
@@ -398,24 +349,19 @@ class ToastNotificationManager:
     def _open_library(self) -> None:
         """Открыть библиотеку в главном окне"""
         try:
-            # Получаем главное окно
             from PyQt6.QtWidgets import QApplication
             app = QApplication.instance()
             
             if app:
                 for widget in app.topLevelWidgets():
                     if widget.__class__.__name__ == 'MainWindow':
-                        # Показываем окно если оно свернуто
                         if widget.isMinimized():
                             widget.showNormal()
                         
-                        # Активируем окно
                         widget.raise_()
                         widget.activateWindow()
                         
-                        # Переключаемся на вкладку библиотеки
                         if hasattr(widget, 'tab_widget'):
-                            # Находим индекс вкладки библиотеки (обычно 3)
                             for i in range(widget.tab_widget.count()):
                                 tab_text = widget.tab_widget.tabText(i)
                                 if 'БИБЛИОТЕКА' in tab_text or 'LIBRARY' in tab_text:
@@ -427,12 +373,11 @@ class ToastNotificationManager:
             log_error(f"Ошибка открытия библиотеки: {e}")
 
 
-# Глобальный экземпляр
 _toast_manager = None
 
 
 def get_toast_manager(parent=None):
-    """Получить глобальный экземпляр менеджера toast-уведомлений"""
+    """Получить глобальный экземпляр менеджера уведомлений"""
     global _toast_manager
     if _toast_manager is None:
         _toast_manager = ToastNotificationManager(parent)
