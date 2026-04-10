@@ -14,17 +14,14 @@ class DownloadsManager:
     
     def get_downloads_dir(self):
         """Получить путь к папке загрузок"""
-        # Импортируем функцию из main.py
         try:
             from main import get_downloads_dir
             return get_downloads_dir()
         except:
-            # Fallback если не удалось импортировать
             appdata = os.environ.get('APPDATA')
             if appdata:
                 return os.path.join(appdata, 'UTILHELP', 'UTILHELPFILES')
             else:
-                # Последний fallback
                 if getattr(sys, 'frozen', False):
                     base_dir = os.path.dirname(sys.executable)
                 else:
@@ -99,6 +96,27 @@ class DownloadsManager:
             return True
         except Exception as e:
             print(f"Ошибка удаления файла: {e}")
+            return False
+    
+    def delete_all_downloads(self):
+        """Удалить все загрузки"""
+        try:
+            # Удаляем все файлы
+            metadata = self.load_metadata()
+            for item in metadata:
+                filepath = os.path.join(self.downloads_dir, item["filename"])
+                if os.path.exists(filepath):
+                    try:
+                        os.remove(filepath)
+                    except Exception as e:
+                        print(f"Ошибка удаления файла {filepath}: {e}")
+            
+            # Очищаем метаданные
+            self.save_metadata([])
+            
+            return True
+        except Exception as e:
+            print(f"Ошибка удаления всех файлов: {e}")
             return False
     
     def get_file_size(self, filename):
