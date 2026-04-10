@@ -33,7 +33,7 @@ def check_settings_structure():
     for key, description in translations:
         try:
             value = t(key)
-            if key in value:  # Если ключ не переведен, он возвращается как есть
+            if key in value:  
                 print(f"  ✗ {description}: ОТСУТСТВУЕТ ({key})")
                 all_ok = False
             else:
@@ -44,7 +44,6 @@ def check_settings_structure():
     
     print()
     
-    # Проверка настроек
     print("2. ПРОВЕРКА НАСТРОЕК В settings_manager:")
     print("-" * 60)
     
@@ -64,7 +63,6 @@ def check_settings_structure():
     
     print()
     
-    # Проверка методов в settings_tab_full
     print("3. ПРОВЕРКА МЕТОДОВ В settings_tab_full.py:")
     print("-" * 60)
     
