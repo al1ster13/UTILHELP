@@ -50,51 +50,44 @@ class DriverInfoPanel(BaseInfoPanel):
             button.setText(t("buttons.download"))
             button.clicked.connect(lambda: self._handle_download_click(item_data))
         
-        button.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
-                color: #ffffff;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['download_btn']};
+                color: white;
                 border: none;
                 border-radius: 8px;
                 font-size: 14px;
                 font-weight: bold;
                 padding: 12px 20px;
-            }
-            QPushButton:hover {
-                background-color: #777777;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QPushButton:disabled {
-                background-color: #7f8c8d;
-                color: #bdc3c7;
-            }
+            }}
+            QPushButton:hover {{ background-color: {c['download_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['download_press']}; }}
+            QPushButton:disabled {{ background-color: {c['bg_tertiary']}; color: {c['text_disabled']}; }}
         """)
         
         return button
     
     def _create_website_button(self, item_data: Dict[str, Any]) -> QPushButton:
         """Создать кнопку сайта разработчика"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
         button = QPushButton(t("buttons.developer_website"))
         button.setFixedHeight(40)
         button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         button.clicked.connect(lambda: self._open_website(item_data.get("website", "")))
-        button.setStyleSheet("""
-            QPushButton {
-                background-color: #4a4a4a;
-                color: #ffffff;
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
+                color: {c['text_primary']};
                 border: none;
                 border-radius: 6px;
                 font-size: 12px;
                 padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-            QPushButton:pressed {
-                background-color: #3a3a3a;
-            }
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['bg_pressed']}; }}
         """)
         return button
     
@@ -150,7 +143,7 @@ class DriversTab(QWidget):
         self.scan_in_progress = False
         
         from settings_manager import settings_manager
-        self.view_mode = settings_manager.get_setting("view_mode_drivers", "grid")
+        self.view_mode = settings_manager.get_setting("view_mode", "grid")
         
         self.user_gpu_vendor = GPUDetector.detect_gpu_vendor()
         self.user_cpu_vendor = CPUDetector.detect_cpu_vendor()
@@ -160,49 +153,49 @@ class DriversTab(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(20, 20, 20, 20)
 
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
                 border-radius: 10px;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical {{
                 background-color: transparent;
                 width: 16px;
                 border-radius: 8px;
                 margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['scrollbar_handle']};
                 border-radius: 8px;
                 min-height: 30px;
                 margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: #777777;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['scrollbar_hover']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 border: none;
                 background: none;
                 height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                 background: none;
-            }
+            }}
         """)
-        
+
         self.title_label = QLabel(t("tabs.drivers"))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 28px;
                 font-weight: bold;
                 margin: 20px 0px;
                 letter-spacing: 2px;
-            }
+            }}
         """)
         self.layout.addWidget(self.title_label)
         
@@ -221,21 +214,23 @@ class DriversTab(QWidget):
         self.search_input.setPlaceholderText(t("search.drivers_placeholder"))
         self.search_input.textChanged.connect(self.filter_drivers)
         self.search_input.setFixedHeight(35)
-        self.search_input.setStyleSheet("""
-            QLineEdit {
-                background-color: #2d2d2d;
-                border: 1px solid transparent;
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {c['bg_input']};
+                border: 1px solid {c['border']};
                 border-radius: 8px;
                 padding: 8px 15px;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 14px;
                 outline: none;
-            }
-            QLineEdit:focus {
-                background-color: #353535;
-                border: 1px solid transparent;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {c['accent']};
                 outline: none;
-            }
+            }}
+            QLineEdit:hover {{
+                border: 1px solid {c['border_hover']};
+            }}
         """)
         
         search_layout.addWidget(self.search_input)
@@ -250,35 +245,28 @@ class DriversTab(QWidget):
         self.scan_button.setFixedSize(35, 35)
         self.scan_button.clicked.connect(self.start_system_scan)
         self.scan_button.setToolTip(t("search.scan_tooltip"))
-        self.scan_button.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
+        self.scan_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
                 border: none;
                 border-radius: 8px;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 outline: none;
                 padding-left: 2px;
-            }
-            QPushButton:hover {
-                background-color: #777777;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QPushButton:disabled {
-                background-color: #444444;
-                color: #999999;
-            }
-            QToolTip {
-                background-color: #2d2d2d;
-                color: #ffffff;
-                border: 1px solid #555555;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['border_hover']}; }}
+            QPushButton:disabled {{ background-color: {c['bg_tertiary']}; color: {c['text_disabled']}; }}
+            QToolTip {{
+                background-color: {c['bg_secondary']};
+                color: {c['text_primary']};
+                border: 1px solid {c['border']};
                 border-radius: 4px;
                 padding: 8px;
                 font-size: 12px;
-            }
+            }}
         """)
         
         search_layout.addWidget(self.scan_button)
@@ -286,30 +274,26 @@ class DriversTab(QWidget):
         self.view_mode_button = QPushButton()
         self.view_mode_button.setFixedSize(35, 35)
         self.view_mode_button.clicked.connect(self.toggle_view_mode)
-        self.view_mode_button.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
+        self.view_mode_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
                 border: none;
                 border-radius: 8px;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 18px;
                 font-weight: bold;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #777777;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QToolTip {
-                background-color: #2d2d2d;
-                color: #ffffff;
-                border: 1px solid #555555;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['border_hover']}; }}
+            QToolTip {{
+                background-color: {c['bg_secondary']};
+                color: {c['text_primary']};
+                border: 1px solid {c['border']};
                 border-radius: 4px;
                 padding: 8px;
                 font-size: 12px;
-            }
+            }}
         """)
         
         search_layout.addWidget(self.view_mode_button)
@@ -322,36 +306,33 @@ class DriversTab(QWidget):
         
         configure_scroll_area(self.scroll_area)
         
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 border: none;
                 background-color: transparent;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical {{
                 background-color: transparent;
                 width: 16px;
                 margin: 8px 0px 7px 0px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['scrollbar_handle']};
                 border-radius: 8px;
                 min-height: 30px;
                 margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: #777777;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['scrollbar_hover']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 border: none;
                 background: none;
                 height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                 background: none;
-            }
+            }}
         """)
         
         self.drivers_content = QWidget()
@@ -469,35 +450,31 @@ class DriversTab(QWidget):
 
     def create_driver_card(self, driver):
         """Создание карточки драйвера"""
+        from theme_manager import theme_manager, colorize_pixmap
+        c = theme_manager.colors
+
         card = QFrame()
-        card.setFixedSize(220, 250)  
-        
+        card.setFixedSize(220, 250)
+
         def card_mouse_press(event):
             if event.button() == Qt.MouseButton.LeftButton:
                 child = card.childAt(event.pos())
                 if child and child.objectName() == "favorite_btn":
                     return
                 self.show_driver_info(driver)
-        
+
         card.mousePressEvent = card_mouse_press
-        
-        colors = {
-            'bg_secondary': '#252525',
-            'bg_button': '#2d2d2d', 
-            'border': '#404040',
-            'text_primary': '#ffffff'
-        }
-        
+
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: {colors['bg_secondary']};
+                background-color: {c['bg_tertiary']};
                 border: none;
                 border-radius: 15px;
                 padding: 0px;
             }}
             QFrame:hover {{
-                background-color: {colors['bg_button']};
-                border: 2px solid {colors['border']};
+                background-color: {c['bg_hover']};
+                border: 2px solid {c['border_hover']};
             }}
         """)
         
@@ -531,23 +508,23 @@ class DriversTab(QWidget):
             else:
                 status_label.setText("✓")
             
-            status_label.setStyleSheet("""
-                QLabel {
+            status_label.setStyleSheet(f"""
+                QLabel {{
                     background-color: transparent;
                     border: none;
                     min-width: 24px;
                     max-width: 24px;
                     min-height: 24px;
                     max-height: 24px;
-                }
-                QToolTip {
-                    background-color: #2d2d2d;
-                    color: #ffffff;
-                    border: 1px solid #555555;
+                }}
+                QToolTip {{
+                    background-color: {c['bg_secondary']};
+                    color: {c['text_primary']};
+                    border: 1px solid {c['border']};
                     border-radius: 4px;
                     padding: 8px;
                     font-size: 12px;
-                }
+                }}
             """)
             status_label.setToolTip(t("status.installed_short", name=status['exact_name'], version=status['version']))
             top_layout.addWidget(status_label)
@@ -586,31 +563,32 @@ class DriversTab(QWidget):
         pixmap = load_program_image(driver["logo"])
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            if theme_manager.is_light():
+                scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
             logo_label = QLabel()
             logo_label.setPixmap(scaled_pixmap)
         else:
-            logo_label = QLabel("🔧")  
-        
+            logo_label = QLabel("🔧")
+
         logo_container = QWidget()
-        logo_container.setFixedSize(200, 100)  
+        logo_container.setFixedSize(200, 100)
         logo_container.setStyleSheet("background: transparent;")
         logo_layout = QHBoxLayout(logo_container)
         logo_layout.setContentsMargins(0, 0, 0, 0)
         logo_layout.addStretch()
         logo_layout.addWidget(logo_label)
         logo_layout.addStretch()
-        
+
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_label.setFixedSize(100, 100)
-        logo_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        logo_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 48px;
-                font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
                 background: transparent;
                 border: none;
                 qproperty-alignment: AlignCenter;
-            }
+            }}
         """)
         
         card_layout.addWidget(logo_container)
@@ -645,17 +623,17 @@ class DriversTab(QWidget):
                 cpu_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 cpu_label.setWordWrap(False)
                 cpu_label.setFixedWidth(140)
-                cpu_label.setStyleSheet("""
-                    QLabel {
-                        color: #cccccc;
+                cpu_label.setStyleSheet(f"""
+                    QLabel {{
+                        color: {c['text_secondary']};
                         font-size: 9px;
                         font-weight: bold;
-                        background: rgba(128, 128, 128, 0.1);
-                        border: 1px solid #888888;
+                        background: {c['bg_tertiary']};
+                        border: 1px solid {c['border']};
                         border-radius: 4px;
                         padding: 2px 6px;
                         margin: 1px;
-                    }
+                    }}
                 """)
                 
                 cpu_layout.addWidget(cpu_label)
@@ -673,17 +651,17 @@ class DriversTab(QWidget):
                 gpu_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 gpu_label.setWordWrap(False)
                 gpu_label.setFixedWidth(140)
-                gpu_label.setStyleSheet("""
-                    QLabel {
-                        color: #cccccc;
+                gpu_label.setStyleSheet(f"""
+                    QLabel {{
+                        color: {c['text_secondary']};
                         font-size: 9px;
                         font-weight: bold;
-                        background: rgba(128, 128, 128, 0.1);
-                        border: 1px solid #888888;
+                        background: {c['bg_tertiary']};
+                        border: 1px solid {c['border']};
                         border-radius: 4px;
                         padding: 2px 6px;
                         margin: 1px;
-                    }
+                    }}
                 """)
                 
                 gpu_layout.addWidget(gpu_label)
@@ -700,10 +678,10 @@ class DriversTab(QWidget):
         name_label = QLabel(driver["name"])
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name_label.setWordWrap(True)
-        name_label.setFixedHeight(60)  
+        name_label.setFixedHeight(60)
         name_label.setStyleSheet(f"""
             QLabel {{
-                color: {colors['text_primary']};
+                color: {c['text_primary']};
                 font-size: 15px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
@@ -715,78 +693,74 @@ class DriversTab(QWidget):
             }}
         """)
         card_layout.addWidget(name_label)
-        
+
         return card
-    
+
     def create_driver_card_list(self, driver):
         """Создание горизонтальной карточки драйвера для режима списка"""
+        from theme_manager import theme_manager, colorize_pixmap
+        c = theme_manager.colors
+
         card = QFrame()
         card.setFixedHeight(80)
         card.setMinimumWidth(600)
-        
+
         def card_mouse_press(event):
             if event.button() == Qt.MouseButton.LeftButton:
                 child = card.childAt(event.pos())
                 if child and child.objectName() == "favorite_btn":
                     return
                 self.show_driver_info(driver)
-        
+
         card.mousePressEvent = card_mouse_press
-        
-        colors = {
-            'bg_secondary': '#252525',
-            'bg_button': '#2d2d2d', 
-            'border': '#404040',
-            'text_primary': '#ffffff',
-            'text_secondary': '#999999'
-        }
-        
+
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: {colors['bg_secondary']};
+                background-color: {c['bg_tertiary']};
                 border: none;
                 border-radius: 10px;
                 padding: 0px;
             }}
             QFrame:hover {{
-                background-color: {colors['bg_button']};
-                border: 2px solid {colors['border']};
+                background-color: {c['bg_hover']};
+                border: 2px solid {c['border_hover']};
             }}
         """)
-        
+
         card_layout = QHBoxLayout(card)
         card_layout.setContentsMargins(15, 10, 15, 10)
         card_layout.setSpacing(15)
-        
+
         from image_helper import load_program_image
         pixmap = load_program_image(driver["logo"])
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            if theme_manager.is_light():
+                scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
             logo_label = QLabel()
             logo_label.setPixmap(scaled_pixmap)
         else:
             logo_label = QLabel("💿")
-        
+
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_label.setFixedSize(60, 60)
-        logo_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        logo_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 32px;
-                font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         card_layout.addWidget(logo_label)
-        
+
         info_layout = QVBoxLayout()
         info_layout.setSpacing(5)
-        
+
         name_label = QLabel(driver["name"])
         name_label.setStyleSheet(f"""
             QLabel {{
-                color: {colors['text_primary']};
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
@@ -795,21 +769,21 @@ class DriversTab(QWidget):
             }}
         """)
         info_layout.addWidget(name_label)
-        
+
         from settings_manager import settings_manager
         current_language = settings_manager.get_setting("language", "ru")
-        
+
         if current_language == "en" and "description_en" in driver:
             description = driver.get("description_en", driver.get("description", ""))
         else:
             description = driver.get("description", "")
-        
+
         if len(description) > 100:
             description = description[:97] + "..."
         desc_label = QLabel(description)
         desc_label.setStyleSheet(f"""
             QLabel {{
-                color: {colors['text_secondary']};
+                color: {c['text_secondary']};
                 font-size: 12px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
@@ -817,49 +791,39 @@ class DriversTab(QWidget):
             }}
         """)
         info_layout.addWidget(desc_label)
-        
         card_layout.addLayout(info_layout, 1)
-        
+
         show_cpu_recommendation = CPUDetector.should_show_cpu_recommendation(driver["name"], self.user_cpu_vendor)
         show_gpu_recommendation = GPUDetector.should_show_recommendation(driver["name"], self.user_gpu_vendor)
-        
+
         if show_cpu_recommendation or show_gpu_recommendation:
             rec_layout = QVBoxLayout()
             rec_layout.setSpacing(3)
             rec_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            
+
+            _rec_style = f"""
+                QLabel {{
+                    color: {c['text_secondary']};
+                    font-size: 10px;
+                    font-weight: bold;
+                    background: {c['bg_tertiary']};
+                    border: 1px solid {c['border']};
+                    border-radius: 4px;
+                    padding: 3px 8px;
+                }}
+            """
             if show_cpu_recommendation:
                 cpu_label = QLabel(t("status.for_your_cpu"))
                 cpu_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                cpu_label.setStyleSheet("""
-                    QLabel {
-                        color: #cccccc;
-                        font-size: 10px;
-                        font-weight: bold;
-                        background: rgba(128, 128, 128, 0.15);
-                        border: 1px solid #888888;
-                        border-radius: 4px;
-                        padding: 3px 8px;
-                    }
-                """)
+                cpu_label.setStyleSheet(_rec_style)
                 rec_layout.addWidget(cpu_label)
-            
+
             if show_gpu_recommendation:
                 gpu_label = QLabel(t("status.for_your_gpu"))
                 gpu_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                gpu_label.setStyleSheet("""
-                    QLabel {
-                        color: #cccccc;
-                        font-size: 10px;
-                        font-weight: bold;
-                        background: rgba(128, 128, 128, 0.15);
-                        border: 1px solid #888888;
-                        border-radius: 4px;
-                        padding: 3px 8px;
-                    }
-                """)
+                gpu_label.setStyleSheet(_rec_style)
                 rec_layout.addWidget(gpu_label)
-            
+
             card_layout.addLayout(rec_layout)
         
         status = self.status_manager.get_driver_status(driver["name"])
@@ -881,19 +845,19 @@ class DriversTab(QWidget):
             else:
                 status_label.setText("✓")
             
-            status_label.setStyleSheet("""
-                QLabel {
+            status_label.setStyleSheet(f"""
+                QLabel {{
                     background-color: transparent;
                     border: none;
-                }
-                QToolTip {
-                    background-color: #2d2d2d;
-                    color: #ffffff;
-                    border: 1px solid #555555;
+                }}
+                QToolTip {{
+                    background-color: {c['bg_secondary']};
+                    color: {c['text_primary']};
+                    border: 1px solid {c['border']};
                     border-radius: 4px;
                     padding: 8px;
                     font-size: 12px;
-                }
+                }}
             """)
             status_label.setToolTip(t("status.installed_tooltip", name=status['exact_name'], version=status['version']))
             card_layout.addWidget(status_label)
@@ -1002,7 +966,114 @@ class DriversTab(QWidget):
         """Сброс поиска и прокрутки при переключении вкладки"""
         if hasattr(self, 'search_input'):
             self.search_input.clear()
-            self.search_input.clearFocus()
+
+    def apply_theme(self):
+        """Обновить стили при смене темы"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
+                border-radius: 10px;
+            }}
+        """)
+        
+        # Обновляем заголовок
+        if hasattr(self, 'title_label'):
+            self.title_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {c['text_primary']};
+                    font-size: 28px;
+                    font-weight: bold;
+                    margin: 20px 0px;
+                    letter-spacing: 2px;
+                }}
+            """)
+        
+        if hasattr(self, 'search_input'):
+            self.search_input.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {c['bg_input']};
+                    border: 1px solid {c['border']};
+                    border-radius: 8px;
+                    padding: 8px 15px;
+                    color: {c['text_primary']};
+                    font-size: 14px;
+                    outline: none;
+                }}
+                QLineEdit:focus {{ border: 1px solid {c['accent']}; }}
+                QLineEdit:hover {{ border: 1px solid {c['border_hover']}; }}
+            """)
+        
+        # Обновляем стили скроллбара
+        if hasattr(self, 'scroll_area'):
+            self.scroll_area.setStyleSheet(f"""
+                QScrollArea {{
+                    border: none;
+                    background-color: transparent;
+                }}
+                QScrollBar:vertical {{
+                    background-color: transparent;
+                    width: 16px;
+                    margin: 8px 0px 7px 0px;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {c['scrollbar_handle']};
+                    border-radius: 8px;
+                    min-height: 30px;
+                    margin: 2px;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {c['scrollbar_hover']};
+                }}
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                    border: none;
+                    background: none;
+                    height: 0px;
+                }}
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                    background: none;
+                }}
+            """)
+        
+        btn_style = f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
+                border: none;
+                border-radius: 8px;
+                color: {c['text_primary']};
+                font-size: 16px;
+                font-weight: bold;
+                outline: none;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['border_hover']}; }}
+        """
+        if hasattr(self, 'scan_button'):
+            self.scan_button.setStyleSheet(btn_style)
+            # Обновляем иконку сканирования
+            self.update_scan_button_icon(False)
+        if hasattr(self, 'view_mode_button'):
+            self.view_mode_button.setStyleSheet(btn_style)
+            # Обновляем иконку режима просмотра
+            self.update_view_mode_button()
+        
+        # Обновляем тему category_filter
+        if hasattr(self, 'category_filter') and hasattr(self.category_filter, 'apply_theme'):
+            self.category_filter.apply_theme()
+        
+        # Обновляем тему info_panel
+        if hasattr(self, 'info_panel') and hasattr(self.info_panel, 'apply_theme'):
+            self.info_panel.apply_theme()
+        
+        self.display_drivers()
+        self.search_input.clearFocus()
+        
+        # Принудительно обновляем все виджеты
+        self.update()
+        if hasattr(self, 'drivers_content'):
+            self.drivers_content.update()
         
         if hasattr(self, 'category_filter') and hasattr(self.category_filter, 'is_open'):
             if self.category_filter.is_open:
@@ -1026,7 +1097,11 @@ class DriversTab(QWidget):
         # Переключаем режим
         self.view_mode = "list" if self.view_mode == "grid" else "grid"
         
-        settings_manager.set_setting("view_mode_drivers", self.view_mode)
+        settings_manager.set_setting("view_mode", self.view_mode)
+        
+        # Синхронизируем с programs_tab если он существует
+        if hasattr(self, 'main_window') and hasattr(self.main_window, 'programs_tab'):
+            self.main_window.programs_tab.sync_view_mode(self.view_mode)
         
         self.update_view_mode_button()
         
@@ -1038,93 +1113,54 @@ class DriversTab(QWidget):
         from resource_path import get_icon_path
         from PyQt6.QtGui import QIcon, QPixmap, QPainter
         from PyQt6.QtCore import QSize, Qt
-        
-        if self.view_mode == "grid":
-            # Показываем иконку списка (переключить на список)
-            icon_path = get_icon_path("iconlist.png")
-            if icon_path:
-                original_pixmap = QPixmap(icon_path)
-                
-                centered_pixmap = QPixmap(35, 35)
-                centered_pixmap.fill(Qt.GlobalColor.transparent)
-                
-                # Масштабируем иконку до 27x27 (нечетное число для лучшего центрирования)
-                scaled_pixmap = original_pixmap.scaled(
-                    27, 27, 
-                    Qt.AspectRatioMode.KeepAspectRatio, 
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                
-                # Рисуем иконку точно в центре
-                painter = QPainter(centered_pixmap)
-                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-                
-                # Вычисляем позицию для идеального центрирования
-                # (35-27)/2 = 4 пикселя с каждой стороны
-                x = (35 - scaled_pixmap.width()) // 2
-                y = (35 - scaled_pixmap.height()) // 2
-                
-                painter.drawPixmap(x, y, scaled_pixmap)
-                painter.end()
-                
-                self.view_mode_button.setIcon(QIcon(centered_pixmap))
-                self.view_mode_button.setIconSize(QSize(35, 35))
-                self.view_mode_button.setText("")
-            else:
-                self.view_mode_button.setText("☰")
-            self.view_mode_button.setToolTip(t("view_mode.switch_to_list"))
+        from theme_manager import theme_manager, colorize_pixmap
+
+        icon_name = "iconlist.png" if self.view_mode == "grid" else "icontab.png"
+        icon_path = get_icon_path(icon_name)
+        if icon_path:
+            original_pixmap = QPixmap(icon_path)
+            centered_pixmap = QPixmap(35, 35)
+            centered_pixmap.fill(Qt.GlobalColor.transparent)
+            scaled_pixmap = original_pixmap.scaled(27, 27, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            if theme_manager.is_light():
+                scaled_pixmap = colorize_pixmap(scaled_pixmap, theme_manager.colors['text_secondary'])
+            painter = QPainter(centered_pixmap)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            painter.drawPixmap((35 - scaled_pixmap.width()) // 2, (35 - scaled_pixmap.height()) // 2, scaled_pixmap)
+            painter.end()
+            self.view_mode_button.setIcon(QIcon(centered_pixmap))
+            self.view_mode_button.setIconSize(QSize(35, 35))
+            self.view_mode_button.setText("")
         else:
-            # Показываем иконку плитки (переключить на плитку)
-            icon_path = get_icon_path("icontab.png")
-            if icon_path:
-                original_pixmap = QPixmap(icon_path)
-                
-                centered_pixmap = QPixmap(35, 35)
-                centered_pixmap.fill(Qt.GlobalColor.transparent)
-                
-                # Масштабируем иконку до 27x27 (нечетное число для лучшего центрирования)
-                scaled_pixmap = original_pixmap.scaled(
-                    27, 27, 
-                    Qt.AspectRatioMode.KeepAspectRatio, 
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                
-                # Рисуем иконку точно в центре
-                painter = QPainter(centered_pixmap)
-                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-                
-                # Вычисляем позицию для идеального центрирования
-                # (35-27)/2 = 4 пикселя с каждой стороны
-                x = (35 - scaled_pixmap.width()) // 2
-                y = (35 - scaled_pixmap.height()) // 2
-                
-                painter.drawPixmap(x, y, scaled_pixmap)
-                painter.end()
-                
-                self.view_mode_button.setIcon(QIcon(centered_pixmap))
-                self.view_mode_button.setIconSize(QSize(35, 35))
-                self.view_mode_button.setText("")
-            else:
-                self.view_mode_button.setText("⊞")
-            self.view_mode_button.setToolTip(t("view_mode.switch_to_grid"))
+            self.view_mode_button.setText("☰" if self.view_mode == "grid" else "⊞")
+
+        self.view_mode_button.setToolTip(t("view_mode.switch_to_list") if self.view_mode == "grid" else t("view_mode.switch_to_grid"))
+
+    def sync_view_mode(self, mode):
+        """Синхронизация режима просмотра с другой вкладкой"""
+        if self.view_mode != mode:
+            self.view_mode = mode
+            self.update_view_mode_button()
+            self.display_drivers()
+
     
     def update_scan_button_icon(self, scanning=False):
         """Обновление иконки кнопки сканирования"""
         from resource_path import get_icon_path
-        from PyQt6.QtGui import QIcon
+        from PyQt6.QtGui import QIcon, QPixmap
         from PyQt6.QtCore import QSize
-        
+        from theme_manager import theme_manager, colorize_pixmap
+
         update_icon_path = get_icon_path("update.png")
         if update_icon_path:
-            icon = QIcon(update_icon_path)
-            self.scan_button.setIcon(icon)
+            pixmap = QPixmap(update_icon_path)
+            if theme_manager.is_light():
+                pixmap = colorize_pixmap(pixmap, theme_manager.colors['text_secondary'])
+            self.scan_button.setIcon(QIcon(pixmap))
             self.scan_button.setIconSize(QSize(18, 18))
-            self.scan_button.setText("")  
+            self.scan_button.setText("")
         else:
-            if scanning:
-                self.scan_button.setText("⟳")
-            else:
-                self.scan_button.setText("⟲")
+            self.scan_button.setText("⟳" if scanning else "⟲")
 
     def resizeEvent(self, event):
         """Обработка изменения размера окна"""

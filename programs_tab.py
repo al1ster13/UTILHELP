@@ -50,51 +50,44 @@ class ProgramInfoPanel(BaseInfoPanel):
             button.setText(t("buttons.download"))
             button.clicked.connect(lambda: self._handle_download_click(item_data))
         
-        button.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
-                color: #ffffff;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['download_btn']};
+                color: white;
                 border: none;
                 border-radius: 8px;
                 font-size: 14px;
                 font-weight: bold;
                 padding: 12px 20px;
-            }
-            QPushButton:hover {
-                background-color: #777777;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QPushButton:disabled {
-                background-color: #7f8c8d;
-                color: #bdc3c7;
-            }
+            }}
+            QPushButton:hover {{ background-color: {c['download_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['download_press']}; }}
+            QPushButton:disabled {{ background-color: {c['bg_tertiary']}; color: {c['text_disabled']}; }}
         """)
         
         return button
     
     def _create_website_button(self, item_data: Dict[str, Any]) -> QPushButton:
         """Создать кнопку сайта разработчика"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
         button = QPushButton(t("buttons.developer_website"))
         button.setFixedHeight(40)
         button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         button.clicked.connect(lambda: self._open_website(item_data.get("website", "")))
-        button.setStyleSheet("""
-            QPushButton {
-                background-color: #4a4a4a;
-                color: #ffffff;
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
+                color: {c['text_primary']};
                 border: none;
                 border-radius: 6px;
                 font-size: 12px;
                 padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-            QPushButton:pressed {
-                background-color: #3a3a3a;
-            }
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['bg_pressed']}; }}
         """)
         return button
     
@@ -147,11 +140,13 @@ class ProgramsTab(QWidget):
         
         self.main_container = QWidget(self)
         self.main_container.setGeometry(0, 0, 420, 480)
-        self.main_container.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        self.main_container.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_secondary']};
                 border-radius: 15px;
-            }
+            }}
         """)
         
         self.layout = QVBoxLayout(self.main_container)
@@ -160,14 +155,14 @@ class ProgramsTab(QWidget):
         header_layout = QHBoxLayout()
         
         self.title_label = QLabel()
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 20px;
                 font-weight: bold;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         header_layout.addWidget(self.title_label)
         header_layout.addStretch()
@@ -185,14 +180,14 @@ class ProgramsTab(QWidget):
         if close_icon_path:
             icon = QIcon(close_icon_path)
             close_btn.setIcon(icon)
-            close_btn.setIconSize(QSize(16, 16))  
-            close_btn.setFlat(True)  
+            close_btn.setIconSize(QSize(16, 16))
+            close_btn.setFlat(True)
             from PyQt6.QtCore import Qt
             close_btn.setProperty("flat", True)
-            close_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #666666;
-                    color: #ffffff;
+            close_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['bg_pressed']};
+                    color: {c['text_primary']};
                     border: none;
                     border-radius: 12px;
                     font-size: 14px;
@@ -200,21 +195,16 @@ class ProgramsTab(QWidget):
                     text-align: center;
                     padding: 0px;
                     outline: none;
-                }
-                QPushButton:hover {
-                    background-color: #777777;
-                }
-                QPushButton:focus {
-                    outline: none;
-                    border: none;
-                }
+                }}
+                QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+                QPushButton:focus {{ outline: none; border: none; }}
             """)
         else:
-            close_btn.setText("✕")  
-            close_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #666666;
-                    color: #ffffff;
+            close_btn.setText("✕")
+            close_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {c['bg_pressed']};
+                    color: {c['text_primary']};
                     border: none;
                     border-radius: 12px;
                     font-size: 14px;
@@ -222,14 +212,9 @@ class ProgramsTab(QWidget):
                     text-align: center;
                     padding: 0px;
                     outline: none;
-                }
-                QPushButton:hover {
-                    background-color: #777777;
-                }
-                QPushButton:focus {
-                    outline: none;
-                    border: none;
-                }
+                }}
+                QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+                QPushButton:focus {{ outline: none; border: none; }}
             """)
 
         header_layout.addWidget(close_btn)
@@ -238,27 +223,27 @@ class ProgramsTab(QWidget):
         
         self.logo_label = QLabel()
         self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.logo_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.logo_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 60px;
                 margin: 15px 0px;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         self.layout.addWidget(self.logo_label)
         
         self.category_label = QLabel()
         self.category_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.category_label.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
+        self.category_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_secondary']};
                 font-size: 14px;
                 margin: 5px 0px 5px 0px;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         self.layout.addWidget(self.category_label)
         
@@ -266,57 +251,52 @@ class ProgramsTab(QWidget):
         
         self.desc_label = QLabel()
         self.desc_label.setWordWrap(True)
-        self.desc_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.desc_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 14px;
                 line-height: 1.5;
                 background: transparent;
                 border: none;
                 padding: 0px;
-            }
+            }}
         """)
         
         self.desc_scroll = QScrollArea()
         self.desc_scroll.setWidget(self.desc_label)
         self.desc_scroll.setWidgetResizable(True)
-        self.desc_scroll.setFixedHeight(160)  
+        self.desc_scroll.setFixedHeight(160)
         self.desc_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.desc_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
         configure_scroll_area(self.desc_scroll)
         
-        self.desc_scroll.setStyleSheet("""
-            QScrollArea {
+        self.desc_scroll.setStyleSheet(f"""
+            QScrollArea {{
                 border: none;
                 background: transparent;
                 margin-left: 3px;
-            }
-            QScrollBar:vertical {
-                background-color: #2d2d2d;
+            }}
+            QScrollBar:vertical {{
+                background-color: {c['scrollbar_bg']};
                 width: 8px;
                 border-radius: 4px;
                 margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['scrollbar_handle']};
                 border-radius: 4px;
                 min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: #777777;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                border: none;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['scrollbar_hover']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                border: none; background: none; height: 0px;
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                 background: none;
-                height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: none;
-            }
+            }}
         """)
         
         self.layout.addWidget(self.desc_scroll)
@@ -332,61 +312,41 @@ class ProgramsTab(QWidget):
         
         self.download_btn = QPushButton()
         self.download_btn.clicked.connect(self.handle_button_click)
-        self.download_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
-                color: #ffffff;
+        self.download_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['download_btn']};
+                color: white;
                 border: none;
                 padding: 12px 20px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 14px;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #777777;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QPushButton:disabled {
-                background-color: #7f8c8d;
-                color: #bdc3c7;
-            }
-            QPushButton:focus {
-                outline: none;
-                border: none;
-            }
+            }}
+            QPushButton:hover {{ background-color: {c['download_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['download_press']}; }}
+            QPushButton:disabled {{ background-color: {c['bg_tertiary']}; color: {c['text_disabled']}; }}
+            QPushButton:focus {{ outline: none; border: none; }}
         """)
         buttons_layout.addWidget(self.download_btn)
         
         self.website_btn = QPushButton(t("buttons.developer_website"))
         self.website_btn.clicked.connect(self.open_developer_website)
-        self.website_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4a4a4a;
-                color: #ffffff;
+        self.website_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_button']};
+                color: {c['text_primary']};
                 border: none;
                 padding: 8px 16px;
                 border-radius: 6px;
                 font-weight: normal;
                 font-size: 12px;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #5a5a5a;
-            }
-            QPushButton:pressed {
-                background-color: #3a3a3a;
-            }
-            QPushButton:disabled {
-                background-color: #2a2a2a;
-                color: #666666;
-            }
-            QPushButton:focus {
-                outline: none;
-                border: none;
-            }
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['bg_pressed']}; }}
+            QPushButton:disabled {{ background-color: {c['bg_tertiary']}; color: {c['text_disabled']}; }}
+            QPushButton:focus {{ outline: none; border: none; }}
         """)
         buttons_layout.addWidget(self.website_btn)
         
@@ -564,54 +524,54 @@ class ProgramsTab(QWidget):
         self.scan_in_progress = False
         
         from settings_manager import settings_manager
-        self.view_mode = settings_manager.get_setting("view_mode_programs", "grid")
+        self.view_mode = settings_manager.get_setting("view_mode", "grid")
         
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(20, 20, 20, 20)
-        
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
+
+        from theme_manager import theme_manager, get_tab_stylesheet
+        c = theme_manager.colors
+
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
                 border-radius: 10px;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical {{
                 background-color: transparent;
                 width: 16px;
                 border-radius: 8px;
                 margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['scrollbar_handle']};
                 border-radius: 8px;
                 min-height: 30px;
                 margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: #777777;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['scrollbar_hover']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 border: none;
                 background: none;
                 height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                 background: none;
-            }
+            }}
         """)
-        
+
         self.title_label = QLabel(t("tabs.programs"))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 28px;
                 font-weight: bold;
                 margin: 20px 0px;
                 letter-spacing: 2px;
-            }
+            }}
         """)
         self.layout.addWidget(self.title_label)
         
@@ -630,21 +590,23 @@ class ProgramsTab(QWidget):
         self.search_input.setPlaceholderText(t("search.programs_placeholder"))
         self.search_input.textChanged.connect(self.filter_programs)
         self.search_input.setFixedHeight(35)
-        self.search_input.setStyleSheet("""
-            QLineEdit {
-                background-color: #2d2d2d;
-                border: 1px solid transparent;
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {c['bg_input']};
+                border: 1px solid {c['border']};
                 border-radius: 8px;
                 padding: 8px 15px;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 14px;
                 outline: none;
-            }
-            QLineEdit:focus {
-                background-color: #353535;
-                border: 1px solid transparent;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {c['accent']};
                 outline: none;
-            }
+            }}
+            QLineEdit:hover {{
+                border: 1px solid {c['border_hover']};
+            }}
         """)
         
         search_layout.addWidget(self.search_input)
@@ -660,35 +622,28 @@ class ProgramsTab(QWidget):
         self.scan_button.setFixedSize(35, 35)
         self.scan_button.clicked.connect(self.start_system_scan)
         self.scan_button.setToolTip(t("search.scan_tooltip"))
-        self.scan_button.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
+        self.scan_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
                 border: none;
                 border-radius: 8px;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 outline: none;
                 padding-left: 2px;
-            }
-            QPushButton:hover {
-                background-color: #777777;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QPushButton:disabled {
-                background-color: #444444;
-                color: #999999;
-            }
-            QToolTip {
-                background-color: #2d2d2d;
-                color: #ffffff;
-                border: 1px solid #555555;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['border_hover']}; }}
+            QPushButton:disabled {{ background-color: {c['bg_tertiary']}; color: {c['text_disabled']}; }}
+            QToolTip {{
+                background-color: {c['bg_secondary']};
+                color: {c['text_primary']};
+                border: 1px solid {c['border']};
                 border-radius: 4px;
                 padding: 8px;
                 font-size: 12px;
-            }
+            }}
         """)
         
         search_layout.addWidget(self.scan_button)
@@ -696,30 +651,26 @@ class ProgramsTab(QWidget):
         self.view_mode_button = QPushButton()
         self.view_mode_button.setFixedSize(35, 35)
         self.view_mode_button.clicked.connect(self.toggle_view_mode)
-        self.view_mode_button.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
+        self.view_mode_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
                 border: none;
                 border-radius: 8px;
-                color: #ffffff;
+                color: {c['text_primary']};
                 font-size: 18px;
                 font-weight: bold;
                 outline: none;
-            }
-            QPushButton:hover {
-                background-color: #777777;
-            }
-            QPushButton:pressed {
-                background-color: #555555;
-            }
-            QToolTip {
-                background-color: #2d2d2d;
-                color: #ffffff;
-                border: 1px solid #555555;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['border_hover']}; }}
+            QToolTip {{
+                background-color: {c['bg_secondary']};
+                color: {c['text_primary']};
+                border: 1px solid {c['border']};
                 border-radius: 4px;
                 padding: 8px;
                 font-size: 12px;
-            }
+            }}
         """)
         
         search_layout.addWidget(self.view_mode_button)
@@ -732,36 +683,33 @@ class ProgramsTab(QWidget):
         
         configure_scroll_area(self.scroll_area)
         
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 border: none;
                 background-color: transparent;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical {{
                 background-color: transparent;
                 width: 16px;
                 margin: 8px 0px 7px 0px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #555555;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['scrollbar_handle']};
                 border-radius: 8px;
                 min-height: 30px;
                 margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #666666;
-            }
-            QScrollBar::handle:vertical:pressed {
-                background-color: #777777;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {c['scrollbar_hover']};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 border: none;
                 background: none;
                 height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                 background: none;
-            }
+            }}
         """)
         
         self.programs_content = QWidget()
@@ -879,35 +827,31 @@ class ProgramsTab(QWidget):
 
     def create_program_card(self, program):
         """Создание квадратной карточки программы"""
+        from theme_manager import theme_manager, colorize_pixmap
+        c = theme_manager.colors
+
         card = QFrame()
-        card.setFixedSize(220, 250)  
-        
+        card.setFixedSize(220, 250)
+
         def card_mouse_press(event):
             if event.button() == Qt.MouseButton.LeftButton:
                 child = card.childAt(event.pos())
                 if child and child.objectName() == "favorite_btn":
                     return
                 self.show_program_info(program)
-        
+
         card.mousePressEvent = card_mouse_press
-        
-        colors = {
-            'bg_secondary': '#252525',
-            'bg_button': '#2d2d2d', 
-            'border': '#404040',
-            'text_primary': '#ffffff'
-        }
-        
+
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: {colors['bg_secondary']};
+                background-color: {c['bg_tertiary']};
                 border: none;
                 border-radius: 15px;
                 padding: 0px;
             }}
             QFrame:hover {{
-                background-color: {colors['bg_button']};
-                border: 2px solid {colors['border']};
+                background-color: {c['bg_hover']};
+                border: 2px solid {c['border_hover']};
             }}
         """)
         
@@ -941,23 +885,23 @@ class ProgramsTab(QWidget):
             else:
                 status_label.setText("✓")
             
-            status_label.setStyleSheet("""
-                QLabel {
+            status_label.setStyleSheet(f"""
+                QLabel {{
                     background-color: transparent;
                     border: none;
                     min-width: 24px;
                     max-width: 24px;
                     min-height: 24px;
                     max-height: 24px;
-                }
-                QToolTip {
-                    background-color: #2d2d2d;
-                    color: #ffffff;
-                    border: 1px solid #555555;
+                }}
+                QToolTip {{
+                    background-color: {c['bg_secondary']};
+                    color: {c['text_primary']};
+                    border: 1px solid {c['border']};
                     border-radius: 4px;
                     padding: 8px;
                     font-size: 12px;
-                }
+                }}
             """)
             status_label.setToolTip(t("status.installed_tooltip", name=status['exact_name'], version=status['version']))
             top_layout.addWidget(status_label)
@@ -996,10 +940,13 @@ class ProgramsTab(QWidget):
         pixmap = load_program_image(program["logo"])
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            # В светлой теме перекрашиваем белые иконки в тёмный цвет
+            if theme_manager.is_light():
+                scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
             logo_label = QLabel()
             logo_label.setPixmap(scaled_pixmap)
         else:
-            logo_label = QLabel("📦")  
+            logo_label = QLabel("📦")
         
         logo_container = QWidget()
         logo_container.setFixedSize(200, 100)  
@@ -1012,15 +959,15 @@ class ProgramsTab(QWidget):
         
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_label.setFixedSize(100, 100)
-        logo_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        logo_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 48px;
                 font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
                 background: transparent;
                 border: none;
                 qproperty-alignment: AlignCenter;
-            }
+            }}
         """)
         
         card_layout.addWidget(logo_container)
@@ -1030,10 +977,10 @@ class ProgramsTab(QWidget):
         name_label = QLabel(program["name"])
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name_label.setWordWrap(True)
-        name_label.setFixedHeight(60)  
+        name_label.setFixedHeight(60)
         name_label.setStyleSheet(f"""
             QLabel {{
-                color: {colors['text_primary']};
+                color: {c['text_primary']};
                 font-size: 15px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
@@ -1050,73 +997,69 @@ class ProgramsTab(QWidget):
     
     def create_program_card_list(self, program):
         """Создание горизонтальной карточки программы для режима списка"""
+        from theme_manager import theme_manager, colorize_pixmap
+        c = theme_manager.colors
+
         card = QFrame()
         card.setFixedHeight(80)
         card.setMinimumWidth(600)
-        
+
         def card_mouse_press(event):
             if event.button() == Qt.MouseButton.LeftButton:
                 child = card.childAt(event.pos())
                 if child and child.objectName() == "favorite_btn":
                     return
                 self.show_program_info(program)
-        
+
         card.mousePressEvent = card_mouse_press
-        
-        colors = {
-            'bg_secondary': '#252525',
-            'bg_button': '#2d2d2d', 
-            'border': '#404040',
-            'text_primary': '#ffffff',
-            'text_secondary': '#999999'
-        }
-        
+
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: {colors['bg_secondary']};
+                background-color: {c['bg_tertiary']};
                 border: none;
                 border-radius: 10px;
                 padding: 0px;
             }}
             QFrame:hover {{
-                background-color: {colors['bg_button']};
-                border: 2px solid {colors['border']};
+                background-color: {c['bg_hover']};
+                border: 2px solid {c['border_hover']};
             }}
         """)
-        
+
         card_layout = QHBoxLayout(card)
         card_layout.setContentsMargins(15, 10, 15, 10)
         card_layout.setSpacing(15)
-        
+
         from image_helper import load_program_image
         pixmap = load_program_image(program["logo"])
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            if theme_manager.is_light():
+                scaled_pixmap = colorize_pixmap(scaled_pixmap, c['text_secondary'])
             logo_label = QLabel()
             logo_label.setPixmap(scaled_pixmap)
         else:
             logo_label = QLabel("📦")
-        
+
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_label.setFixedSize(60, 60)
-        logo_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        logo_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 32px;
-                font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
                 background: transparent;
                 border: none;
-            }
+            }}
         """)
         card_layout.addWidget(logo_label)
-        
+
         info_layout = QVBoxLayout()
         info_layout.setSpacing(5)
-        
+
         name_label = QLabel(program["name"])
         name_label.setStyleSheet(f"""
             QLabel {{
-                color: {colors['text_primary']};
+                color: {c['text_primary']};
                 font-size: 16px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
@@ -1125,21 +1068,21 @@ class ProgramsTab(QWidget):
             }}
         """)
         info_layout.addWidget(name_label)
-        
+
         from settings_manager import settings_manager
         current_language = settings_manager.get_setting("language", "ru")
-        
+
         if current_language == "en" and "description_en" in program:
             description = program.get("description_en", program.get("description", ""))
         else:
             description = program.get("description", "")
-        
+
         if len(description) > 100:
             description = description[:97] + "..."
         desc_label = QLabel(description)
         desc_label.setStyleSheet(f"""
             QLabel {{
-                color: {colors['text_secondary']};
+                color: {c['text_secondary']};
                 font-size: 12px;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 background: transparent;
@@ -1147,7 +1090,6 @@ class ProgramsTab(QWidget):
             }}
         """)
         info_layout.addWidget(desc_label)
-        
         card_layout.addLayout(info_layout, 1)
         
         status = self.status_manager.get_program_status(program["name"])
@@ -1169,19 +1111,19 @@ class ProgramsTab(QWidget):
             else:
                 status_label.setText("✓")
             
-            status_label.setStyleSheet("""
-                QLabel {
+            status_label.setStyleSheet(f"""
+                QLabel {{
                     background-color: transparent;
                     border: none;
-                }
-                QToolTip {
-                    background-color: #2d2d2d;
-                    color: #ffffff;
-                    border: 1px solid #555555;
+                }}
+                QToolTip {{
+                    background-color: {c['bg_secondary']};
+                    color: {c['text_primary']};
+                    border: 1px solid {c['border']};
                     border-radius: 4px;
                     padding: 8px;
                     font-size: 12px;
-                }
+                }}
             """)
             status_label.setToolTip(t("status.installed_tooltip", name=status['exact_name'], version=status['version']))
             card_layout.addWidget(status_label)
@@ -1292,6 +1234,114 @@ class ProgramsTab(QWidget):
         """Сброс поиска и прокрутки при переключении вкладки"""
         if hasattr(self, 'search_input'):
             self.search_input.clear()
+
+    def apply_theme(self):
+        """Обновить стили при смене темы"""
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_main']};
+                border-radius: 10px;
+            }}
+        """)
+        
+        # Обновляем заголовок
+        if hasattr(self, 'title_label'):
+            self.title_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {c['text_primary']};
+                    font-size: 28px;
+                    font-weight: bold;
+                    margin: 20px 0px;
+                    letter-spacing: 2px;
+                }}
+            """)
+        
+        if hasattr(self, 'search_input'):
+            self.search_input.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {c['bg_input']};
+                    border: 1px solid {c['border']};
+                    border-radius: 8px;
+                    padding: 8px 15px;
+                    color: {c['text_primary']};
+                    font-size: 14px;
+                    outline: none;
+                }}
+                QLineEdit:focus {{ border: 1px solid {c['accent']}; }}
+                QLineEdit:hover {{ border: 1px solid {c['border_hover']}; }}
+            """)
+        
+        # Обновляем стили скроллбара
+        if hasattr(self, 'scroll_area'):
+            self.scroll_area.setStyleSheet(f"""
+                QScrollArea {{
+                    border: none;
+                    background-color: transparent;
+                }}
+                QScrollBar:vertical {{
+                    background-color: transparent;
+                    width: 16px;
+                    margin: 8px 0px 7px 0px;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {c['scrollbar_handle']};
+                    border-radius: 8px;
+                    min-height: 30px;
+                    margin: 2px;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {c['scrollbar_hover']};
+                }}
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                    border: none;
+                    background: none;
+                    height: 0px;
+                }}
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                    background: none;
+                }}
+            """)
+        
+        btn_style = f"""
+            QPushButton {{
+                background-color: {c['bg_pressed']};
+                border: none;
+                border-radius: 8px;
+                color: {c['text_primary']};
+                font-size: 16px;
+                font-weight: bold;
+                outline: none;
+            }}
+            QPushButton:hover {{ background-color: {c['bg_hover']}; }}
+            QPushButton:pressed {{ background-color: {c['border_hover']}; }}
+        """
+        if hasattr(self, 'scan_button'):
+            self.scan_button.setStyleSheet(btn_style)
+            # Обновляем иконку сканирования
+            self.update_scan_button_icon(False)
+        if hasattr(self, 'view_mode_button'):
+            self.view_mode_button.setStyleSheet(btn_style)
+            # Обновляем иконку режима просмотра
+            self.update_view_mode_button()
+        
+        # Обновляем тему category_filter
+        if hasattr(self, 'category_filter') and hasattr(self.category_filter, 'apply_theme'):
+            self.category_filter.apply_theme()
+        
+        # Обновляем тему info_panel
+        if hasattr(self, 'info_panel') and hasattr(self.info_panel, 'apply_theme'):
+            self.info_panel.apply_theme()
+        
+        # Перерисовываем программы с новой темой
+        self.display_programs()
+        
+        # Принудительно обновляем все виджеты
+        self.update()
+        if hasattr(self, 'programs_content'):
+            self.programs_content.update()
     
     def toggle_view_mode(self):
         """Переключение режима просмотра между плиткой и списком"""
@@ -1300,7 +1350,11 @@ class ProgramsTab(QWidget):
         # Переключаем режим
         self.view_mode = "list" if self.view_mode == "grid" else "grid"
         
-        settings_manager.set_setting("view_mode_programs", self.view_mode)
+        settings_manager.set_setting("view_mode", self.view_mode)
+        
+        # Синхронизируем с drivers_tab если он существует
+        if hasattr(self, 'main_window') and hasattr(self.main_window, 'drivers_tab'):
+            self.main_window.drivers_tab.sync_view_mode(self.view_mode)
         
         self.update_view_mode_button()
         
@@ -1312,88 +1366,51 @@ class ProgramsTab(QWidget):
         from resource_path import get_icon_path
         from PyQt6.QtGui import QIcon, QPixmap, QPainter
         from PyQt6.QtCore import QSize, Qt
-        
-        if self.view_mode == "grid":
-            # Показываем иконку списка (переключить на список)
-            icon_path = get_icon_path("iconlist.png")
-            if icon_path:
-                original_pixmap = QPixmap(icon_path)
-                
-                centered_pixmap = QPixmap(35, 35)
-                centered_pixmap.fill(Qt.GlobalColor.transparent)
-                
-                # Масштабируем иконку до 27x27 (нечетное число для лучшего центрирования)
-                scaled_pixmap = original_pixmap.scaled(
-                    27, 27, 
-                    Qt.AspectRatioMode.KeepAspectRatio, 
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                
-                # Рисуем иконку точно в центре
-                painter = QPainter(centered_pixmap)
-                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-                
-                # Вычисляем позицию для идеального центрирования
-                # (35-27)/2 = 4 пикселя с каждой стороны
-                x = (35 - scaled_pixmap.width()) // 2
-                y = (35 - scaled_pixmap.height()) // 2
-                
-                painter.drawPixmap(x, y, scaled_pixmap)
-                painter.end()
-                
-                self.view_mode_button.setIcon(QIcon(centered_pixmap))
-                self.view_mode_button.setIconSize(QSize(35, 35))
-                self.view_mode_button.setText("")
-            else:
-                self.view_mode_button.setText("☰")
-            self.view_mode_button.setToolTip(t("view_mode.switch_to_list"))
+        from theme_manager import theme_manager, colorize_pixmap
+
+        icon_name = "iconlist.png" if self.view_mode == "grid" else "icontab.png"
+        icon_path = get_icon_path(icon_name)
+        if icon_path:
+            original_pixmap = QPixmap(icon_path)
+            centered_pixmap = QPixmap(35, 35)
+            centered_pixmap.fill(Qt.GlobalColor.transparent)
+            scaled_pixmap = original_pixmap.scaled(27, 27, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            if theme_manager.is_light():
+                scaled_pixmap = colorize_pixmap(scaled_pixmap, theme_manager.colors['text_secondary'])
+            painter = QPainter(centered_pixmap)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            painter.drawPixmap((35 - scaled_pixmap.width()) // 2, (35 - scaled_pixmap.height()) // 2, scaled_pixmap)
+            painter.end()
+            self.view_mode_button.setIcon(QIcon(centered_pixmap))
+            self.view_mode_button.setIconSize(QSize(35, 35))
+            self.view_mode_button.setText("")
         else:
-            # Показываем иконку плитки (переключить на плитку)
-            icon_path = get_icon_path("icontab.png")
-            if icon_path:
-                original_pixmap = QPixmap(icon_path)
-                
-                centered_pixmap = QPixmap(35, 35)
-                centered_pixmap.fill(Qt.GlobalColor.transparent)
-                
-                # Масштабируем иконку до 27x27 (нечетное число для лучшего центрирования)
-                scaled_pixmap = original_pixmap.scaled(
-                    27, 27, 
-                    Qt.AspectRatioMode.KeepAspectRatio, 
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                
-                # Рисуем иконку точно в центре
-                painter = QPainter(centered_pixmap)
-                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-                
-                # Вычисляем позицию для идеального центрирования
-                # (35-27)/2 = 4 пикселя с каждой стороны
-                x = (35 - scaled_pixmap.width()) // 2
-                y = (35 - scaled_pixmap.height()) // 2
-                
-                painter.drawPixmap(x, y, scaled_pixmap)
-                painter.end()
-                
-                self.view_mode_button.setIcon(QIcon(centered_pixmap))
-                self.view_mode_button.setIconSize(QSize(35, 35))
-                self.view_mode_button.setText("")
-            else:
-                self.view_mode_button.setText("⊞")
-            self.view_mode_button.setToolTip(t("view_mode.switch_to_grid"))
-    
+            self.view_mode_button.setText("☰" if self.view_mode == "grid" else "⊞")
+
+        self.view_mode_button.setToolTip(t("view_mode.switch_to_list") if self.view_mode == "grid" else t("view_mode.switch_to_grid"))
+
+    def sync_view_mode(self, mode):
+        """Синхронизация режима просмотра с другой вкладкой"""
+        if self.view_mode != mode:
+            self.view_mode = mode
+            self.update_view_mode_button()
+            self.display_programs()
+
     def update_scan_button_icon(self, scanning=False):
         """Обновление иконки кнопки сканирования"""
         from resource_path import get_icon_path
-        from PyQt6.QtGui import QIcon
+        from PyQt6.QtGui import QIcon, QPixmap
         from PyQt6.QtCore import QSize
-        
+        from theme_manager import theme_manager, colorize_pixmap
+
         update_icon_path = get_icon_path("update.png")
         if update_icon_path:
-            icon = QIcon(update_icon_path)
-            self.scan_button.setIcon(icon)
+            pixmap = QPixmap(update_icon_path)
+            if theme_manager.is_light():
+                pixmap = colorize_pixmap(pixmap, theme_manager.colors['text_secondary'])
+            self.scan_button.setIcon(QIcon(pixmap))
             self.scan_button.setIconSize(QSize(18, 18))
-            self.scan_button.setText("")  
+            self.scan_button.setText("")
         else:
             if scanning:
                 self.scan_button.setText("⟳")
