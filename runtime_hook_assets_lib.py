@@ -5,7 +5,6 @@ Runtime hook для PyInstaller
 import sys
 import os
 
-# Получаем путь к папке программы
 if getattr(sys, 'frozen', False):
     app_dir = os.path.dirname(sys.executable)
 else:
@@ -15,7 +14,6 @@ assets_lib = os.path.join(app_dir, 'assets', 'lib')
 if os.path.exists(assets_lib):
     os.environ['PATH'] = assets_lib + os.pathsep + os.environ.get('PATH', '')
     
-    # Также добавляем в sys.path для Python модулей
     if assets_lib not in sys.path:
         sys.path.insert(0, assets_lib)
     
