@@ -1,7 +1,6 @@
 import sys
 import os
 
-# Флаг использования Qt ресурсов
 USE_QT_RESOURCES = True
 
 try:
@@ -29,7 +28,6 @@ def get_icon_path(icon_name):
         if QFile.exists(qrc_path):
             return qrc_path
     
-    # Fallback на файловую систему (только для режима разработки)
     if getattr(sys, 'frozen', False):
         exe_dir = os.path.dirname(os.path.abspath(sys.executable))
     else:
@@ -51,7 +49,16 @@ def get_icon_path(icon_name):
     return None
 
 def get_program_image_path(image_name):
-    """Получить путь к картинке программы для скачивания с поддержкой Qt ресурсов"""
+    """
+    Получить путь к картинке программы для скачивания
+    
+    ВАЖНО: Начиная с версии с системой загрузки логотипов, логотипы программ
+    загружаются с GitHub и кэшируются локально. Эта функция используется только
+    для обратной совместимости и fallback на локальные файлы.
+    
+    Основная загрузка логотипов происходит через logo_manager.py
+    """
+    # Проверяем Qt ресурсы (для обратной совместимости, но логотипы больше не в QRC)
     if USE_QT_RESOURCES:
         qrc_path = f":/programs/ProgramImages/{image_name}"
         from PyQt6.QtCore import QFile
@@ -125,7 +132,6 @@ def get_sound_path(sound_name):
     
     search_paths = []
     
-    # Приоритет 1: assets/sounds (извлеченные из QRC)
     search_paths.append(os.path.join(exe_dir, 'assets', 'sounds', sound_name))
     
     if getattr(sys, 'frozen', False):
@@ -133,7 +139,6 @@ def get_sound_path(sound_name):
             os.path.join(exe_dir, 'notification', sound_name),
         ])
     
-    # Приоритет 2: notification (оригинальная папка для dev)
     search_paths.append(os.path.join(exe_dir, 'notification', sound_name))
     
     try:
