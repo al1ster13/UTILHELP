@@ -34,6 +34,8 @@ class DownloadItem(BaseWidget):
         from PyQt6.QtGui import QPixmap
         from PyQt6.QtCore import Qt
         from resource_path import get_icon_path
+        from theme_manager import theme_manager
+        c = theme_manager.colors
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(15, 10, 15, 10)
@@ -56,74 +58,68 @@ class DownloadItem(BaseWidget):
         info_layout.setSpacing(5)
         
         self.name_label = QLabel(self.filename)
-        self.name_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.name_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_primary']};
                 font-size: 13px;
                 font-weight: bold;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         info_layout.addWidget(self.name_label)
         
-        # Прогресс и скорость
         self.progress_label = QLabel("0% • 0 KB/s")
-        self.progress_label.setStyleSheet("""
-            QLabel {
-                color: #888888;
+        self.progress_label.setStyleSheet(f"""
+            QLabel {{
+                color: {c['text_hint']};
                 font-size: 11px;
                 font-family: 'Segoe UI', Arial, sans-serif;
-            }
+            }}
         """)
         info_layout.addWidget(self.progress_label)
         
         layout.addLayout(info_layout)
         layout.addStretch()
         
-        # Прогресс бар
         self.progress_bar = QProgressBar()
         self.progress_bar.setFixedWidth(150)
         self.progress_bar.setFixedHeight(8)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                background-color: #2d2d2d;
+        self.progress_bar.setStyleSheet(f"""
+            QProgressBar {{
+                background-color: {c['bg_input']};
                 border: none;
                 border-radius: 4px;
-            }
-            QProgressBar::chunk {
-                background-color: #3498db;
+            }}
+            QProgressBar::chunk {{
+                background-color: {c['accent']};
                 border-radius: 4px;
-            }
+            }}
         """)
         layout.addWidget(self.progress_bar)
         
         self.action_btn = QPushButton("✕")
         self.action_btn.setFixedSize(28, 28)
-        self.action_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #666666;
+        self.action_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['download_btn']};
                 color: white;
                 border: none;
                 border-radius: 14px;
                 font-size: 14px;
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #e74c3c;
-            }
-            QPushButton:pressed {
-                background-color: #c0392b;
-            }
+            }}
+            QPushButton:hover {{ background-color: {c['error']}; }}
+            QPushButton:pressed {{ background-color: {c['error']}; }}
         """)
         self.action_btn.clicked.connect(self.cancel_download)
         layout.addWidget(self.action_btn)
         
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #2d2d2d;
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {c['bg_card']};
                 border-radius: 8px;
-            }
+            }}
         """)
         self.setFixedHeight(70)
     
