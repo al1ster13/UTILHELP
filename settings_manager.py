@@ -17,14 +17,12 @@ def get_data_dir():
         
         portable_marker = os.path.join(app_dir, "PORTABLE_MODE.txt")
         if os.path.exists(portable_marker):
-            # Портативный режим - используем папку программы
             data_dir = os.path.join(app_dir, "data")
             os.makedirs(data_dir, exist_ok=True)
             return data_dir
     except:
         pass
     
-    # Обычный режим - используем AppData
     appdata = os.environ.get('APPDATA')
     if appdata:
         data_dir = os.path.join(appdata, 'UTILHELP', 'data')
@@ -34,14 +32,12 @@ def get_data_dir():
         except Exception as e:
             log_error(f"Не удалось создать папку в AppData: {e}")
     
-    # Fallback на временную папку
     import tempfile
     data_dir = os.path.join(tempfile.gettempdir(), 'UTILHELP_data', 'data')
     try:
         os.makedirs(data_dir, exist_ok=True)
         return data_dir
     except:
-        # Последний fallback - папка программы
         if getattr(sys, 'frozen', False):
             app_dir = os.path.dirname(sys.executable)
         else:
@@ -54,21 +50,17 @@ def detect_system_language():
     try:
         import locale
         
-        # Получаем язык системы
         system_lang = locale.getdefaultlocale()[0]
         
         if system_lang:
-            # Извлекаем код языка (первые 2 символа)
             lang_code = system_lang[:2].lower()
             
-            # Поддерживаемые языки
             supported_languages = ['ru', 'en']
             
             if lang_code in supported_languages:
                 log_info(f"Определен язык системы: {lang_code}")
                 return lang_code
         
-        # По умолчанию русский
         log_info("Не удалось определить язык системы, используется русский")
         return "ru"
         
@@ -116,7 +108,6 @@ class SettingsManager:
                             settings[key] = value
                     return settings
             else:
-                # Первый запуск - определяем язык системы
                 settings = self.default_settings.copy()
                 system_lang = detect_system_language()
                 settings["language"] = system_lang
