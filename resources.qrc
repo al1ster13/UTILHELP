@@ -49,56 +49,7 @@
         <file>Icons/whitetheme.png</file>
         <file>Icons/icontab.png</file>
         <file>Icons/iconlist.png</file>
-    </qresource>
-    
-    <qresource prefix="/programs">
-        <!-- Program Images -->
-        <file>ProgramImages/.NET Framework.png</file>
-        <file>ProgramImages/7-ZIP.png</file>
-        <file>ProgramImages/AIMP.png</file>
-        <file>ProgramImages/AMD_Adrenalin_Software.png</file>
-        <file>ProgramImages/AMD_Ryzen_Master.png</file>
-        <file>ProgramImages/BATTLE.NET.png</file>
-        <file>ProgramImages/Brave_Browser.png</file>
-        <file>ProgramImages/CPU-Z.png</file>
-        <file>ProgramImages/Crystal_Disk_Info.png</file>
-        <file>ProgramImages/DirectX.png</file>
-        <file>ProgramImages/EPIC-GAMES.png</file>
-        <file>ProgramImages/Foobar2000.png</file>
-        <file>ProgramImages/Free Download Manager.png</file>
-        <file>ProgramImages/GIMP.png</file>
-        <file>ProgramImages/GOG-GALAXY.png</file>
-        <file>ProgramImages/Google_Chrome.png</file>
-        <file>ProgramImages/GPU-Z.png</file>
-        <file>ProgramImages/HWMONITOR.png</file>
-        <file>ProgramImages/INKSCAPE.png</file>
-        <file>ProgramImages/Intel_Driver.png</file>
-        <file>ProgramImages/Java.png</file>
-        <file>ProgramImages/KRITA.png</file>
-        <file>ProgramImages/LibreOffice.png</file>
-        <file>ProgramImages/MSI-AFTERBURNER.png</file>
-        <file>ProgramImages/notepad++.png</file>
-        <file>ProgramImages/NVIDIA_Geforce.png</file>
-        <file>ProgramImages/OBSIDIAN.png</file>
-        <file>ProgramImages/OpenAL.png</file>
-        <file>ProgramImages/Opera_GX.png</file>
-        <file>ProgramImages/Opera.png</file>
-        <file>ProgramImages/PeaZip.png</file>
-        <file>ProgramImages/PhysX.png</file>
-        <file>ProgramImages/QBitTorrent.png</file>
-        <file>ProgramImages/Rufus.png</file>
-        <file>ProgramImages/STEAM.png</file>
-        <file>ProgramImages/Tor_Browser.png</file>
-        <file>ProgramImages/UBISOFT.png</file>
-        <file>ProgramImages/uTorrent.png</file>
-        <file>ProgramImages/Visual_Studio_Code.png</file>
-        <file>ProgramImages/VisualC++.png</file>
-        <file>ProgramImages/Vivaldi.png</file>
-        <file>ProgramImages/VLC.png</file>
-        <file>ProgramImages/WinRAR.png</file>
-        <file>ProgramImages/XnView_MP.png</file>
-        <file>ProgramImages/Yandex_Browser.png</file>
-        <file>ProgramImages/Yandex_Music.png</file>
+        <file>Icons/trashlib.png</file>
     </qresource>
     
     <qresource prefix="/sounds">
