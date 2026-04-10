@@ -223,7 +223,6 @@ class SettingsTab(BaseWidget):
         temp_dir = tempfile.gettempdir()
         app_temp_dir = os.path.join(temp_dir, "UTILHELP")
         
-        # Подсчет файлов и размера
         file_count = 0
         total_size = 0
         if os.path.exists(app_temp_dir):
@@ -245,20 +244,17 @@ class SettingsTab(BaseWidget):
         else:
             size_str = f"{total_size / (1024 * 1024 * 1024):.2f} GB"
         
-        # Информационная карточка
         info_widget = QWidget()
         info_widget.setStyleSheet(StyleSheets.get_setting_item_style())
         info_layout = LayoutUtils.create_vertical_layout((20, 15, 20, 15), 10)
         info_widget.setLayout(info_layout)
         
-        # Путь к папке
         folder_label = WidgetFactory.create_title_label(t("settings.temp_folder"), 14)
         info_layout.addWidget(folder_label)
         
         path_label = WidgetFactory.create_description_label(app_temp_dir)
         info_layout.addWidget(path_label)
         
-        # Статистика
         stats_label = WidgetFactory.create_description_label(
             t("settings.files_stats", count=file_count, size=size_str)
         )
@@ -311,7 +307,6 @@ class SettingsTab(BaseWidget):
         info_text = WidgetFactory.create_description_label(t("settings.update_info_text"))
         info_layout.addWidget(info_text)
         
-        # Безопасность
         security_text = WidgetFactory.create_description_label(t("settings.update_security"))
         security_text.setStyleSheet("""
             QLabel {
@@ -382,14 +377,12 @@ class SettingsTab(BaseWidget):
         info_layout = LayoutUtils.create_vertical_layout((20, 15, 20, 15), 10)
         info_widget.setLayout(info_layout)
         
-        # Разработчик
         dev_label = WidgetFactory.create_title_label(t("settings.developer"), 14)
         info_layout.addWidget(dev_label)
         
         dev_name = WidgetFactory.create_description_label("al1ster")
         info_layout.addWidget(dev_name)
         
-        # Лицензия
         license_label = WidgetFactory.create_title_label(t("settings.license"), 14)
         info_layout.addWidget(license_label)
         
@@ -430,7 +423,6 @@ class SettingsTab(BaseWidget):
         
         self.content_layout.addWidget(info_widget)
         
-        # Email
         email_widget = self.create_contact_item(
             "email.png",
             t("settings.email"),
@@ -439,7 +431,6 @@ class SettingsTab(BaseWidget):
         )
         self.content_layout.addWidget(email_widget)
         
-        # Telegram
         telegram_widget = self.create_contact_item(
             "telegram.png",
             t("settings.telegram"),
@@ -448,7 +439,6 @@ class SettingsTab(BaseWidget):
         )
         self.content_layout.addWidget(telegram_widget)
         
-        # GitHub
         github_widget = self.create_contact_item(
             "github.png",
             t("settings.github"),
@@ -498,7 +488,6 @@ class SettingsTab(BaseWidget):
         layout.addLayout(text_layout)
         layout.addStretch()
         
-        # Элемент управления
         layout.addWidget(control_widget)
         
         return item
@@ -524,7 +513,6 @@ class SettingsTab(BaseWidget):
         settings_manager.set_setting("notification_style", style)
         
         if hasattr(self, 'notification_style_toggle'):
-            # Находим виджет настройки и обновляем описание
             for i in range(self.content_layout.count()):
                 widget = self.content_layout.itemAt(i).widget()
                 if widget and hasattr(widget, 'findChild'):
@@ -643,7 +631,6 @@ class SettingsTab(BaseWidget):
                     self
                 )
                 dialog.exec()
-                # Обновить отображение
                 self.show_temp_files_settings()
             else:
                 dialog = CustomMessageDialog(
@@ -668,7 +655,6 @@ class SettingsTab(BaseWidget):
         from localization import t
         from custom_dialogs import CustomMessageDialog
         
-        # Показать сообщение о проверке
         dialog = CustomMessageDialog(
             t("settings.checking_updates"),
             t("settings.no_updates"),

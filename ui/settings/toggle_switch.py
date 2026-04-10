@@ -63,12 +63,10 @@ class ToggleSwitch(BaseWidget):
         painter.setBrush(QBrush(slider_color))
         painter.setPen(Qt.PenStyle.NoPen)
         
-        # Тень
         shadow_color = QColor(0, 0, 0, 30)
         painter.setBrush(QBrush(shadow_color))
         painter.drawEllipse(int(self._position) + 1, 5, 12, 12)
         
-        # Основная кнопка
         painter.setBrush(QBrush(slider_color))
         painter.drawEllipse(int(self._position), 4, 12, 12)
     

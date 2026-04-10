@@ -1,5 +1,5 @@
 """
-Полная версия SettingsTab - точная копия оригинала
+Полная версия SettingsTab
 """
 from typing import Optional, Any
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
@@ -15,7 +15,7 @@ from localization import t
 
 
 class SettingsTab(BaseWidget):
-    """Вкладка настроек с боковой панелью - точная копия оригинала"""
+    """Вкладка настроек с боковой панелью"""
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -135,7 +135,7 @@ class SettingsTab(BaseWidget):
     def create_menu_button(self, icon_name: str, text: str, active: bool = False) -> QPushButton:
         """Создание кнопки меню"""
         btn = QPushButton()
-        btn.setProperty("icon_name", icon_name)  # Сохраняем имя иконки для перезагрузки
+        btn.setProperty("icon_name", icon_name) 
         
         pixmap = self.load_icon_pixmap(icon_name)
         if pixmap and not pixmap.isNull():
@@ -328,16 +328,38 @@ class SettingsTab(BaseWidget):
         self.language_combo = CatalogComboBox()
         self.language_combo.setFixedHeight(40)
         
-        # Уменьшаем ширину dropdown для языков  
-        self.language_combo.dropdown.setFixedWidth(199)
-        # Отключаем скроллбар
+        self.language_combo.dropdown.setFixedWidth(206)
         self.language_combo.dropdown.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        # Добавляем языки в явном порядке
+        from theme_manager import theme_manager
+        c = theme_manager.colors
+        self.language_combo.dropdown.setStyleSheet(f"""
+            QListWidget {{
+                background-color: {c['bg_tertiary']};
+                border: none;
+                border-radius: 8px;
+                color: {c['text_primary']};
+                outline: none;
+                font-size: 14px;
+                padding: 4px;
+            }}
+            QListWidget::item {{
+                padding: 8px 11px;
+                border: none;
+                margin: 1px;
+                border-radius: 6px;
+            }}
+            QListWidget::item:hover {{
+                background-color: {c['bg_hover']};
+            }}
+            QListWidget::item:selected {{
+                background-color: {c['bg_pressed']};
+            }}
+        """)
+        
         available_langs = localization.get_available_languages()
         log_info(f"Available languages: {available_langs}")
         
-        # Сначала русский, потом английский
         for lang_code in ["ru", "en"]:
             if lang_code in available_langs:
                 lang_name = available_langs[lang_code]
@@ -348,23 +370,16 @@ class SettingsTab(BaseWidget):
         log_info(f"Items: {self.language_combo.items}")
         log_info(f"Dropdown item count: {self.language_combo.dropdown.count()}")
         
-        # Проверяем каждый элемент в dropdown
         for i in range(self.language_combo.dropdown.count()):
             item = self.language_combo.dropdown.item(i)
             log_info(f"Dropdown item {i}: {item.text() if item else 'None'}")
         
-        # Принудительно обновляем dropdown
         self.language_combo.dropdown.update()
         self.language_combo.dropdown.repaint()
-        # Прокручиваем к началу списка
         self.language_combo.dropdown.scrollToTop()
         
-        # Подключаемся к сигналу нажатия кнопки для изменения высоты dropdown
         def fix_dropdown_height():
             from PyQt6.QtCore import QTimer
-            # Увеличиваем высоту чуть больше для комфортного отображения
-            # padding 8px*2 + текст ~20px = ~36px на элемент
-            # 36px * 2 + padding списка 8px + запас 10px = 90px
             QTimer.singleShot(10, lambda: self.language_combo.dropdown.setFixedHeight(90))
         
         self.language_combo.button.clicked.connect(fix_dropdown_height)
@@ -388,7 +403,21 @@ class SettingsTab(BaseWidget):
         )
         self.content_layout.addWidget(language_setting)
         
-        # Снегопад
+        from theme_manager import theme_manager
+        self.theme_light = theme_manager.is_light()
+
+        self.theme_toggle = ToggleSwitch()
+        self.theme_toggle.setChecked(self.theme_light)
+        self.theme_toggle.toggled.connect(self.save_theme_state)
+
+        self.theme_setting = self.create_setting_item(
+            "whitetheme.png",
+            t("settings.theme"),
+            t("settings.theme_light"),
+            self.theme_toggle
+        )
+        self.content_layout.addWidget(self.theme_setting)
+        
         self.snow_toggle = ToggleSwitch()
         self.snow_toggle.setChecked(self.snow_enabled)
         if self.parent_window:
@@ -434,22 +463,6 @@ class SettingsTab(BaseWidget):
         
         self.toggle_notification_sounds_availability(notifications_enabled)
 
-        # Тема — теперь полностью рабочая
-        from theme_manager import theme_manager
-        self.theme_light = theme_manager.is_light()
-
-        self.theme_toggle = ToggleSwitch()
-        self.theme_toggle.setChecked(self.theme_light)
-        self.theme_toggle.toggled.connect(self.save_theme_state)
-
-        self.theme_setting = self.create_setting_item(
-            "whitetheme.png",
-            t("settings.theme"),
-            t("settings.theme_light"),
-            self.theme_toggle
-        )
-        self.content_layout.addWidget(self.theme_setting)
-
         self.content_layout.addStretch()
 
     def create_setting_item(self, icon: str, title: str, description: str, control_widget: QWidget) -> QWidget:
@@ -471,7 +484,7 @@ class SettingsTab(BaseWidget):
         """)
         
         item_layout = QHBoxLayout(item)
-        item_layout.setContentsMargins(25, 25, 25, 25)  # Увеличены отступы
+        item_layout.setContentsMargins(25, 25, 25, 25)  
         item_layout.setSpacing(20)
         
         icon_label = QLabel()
@@ -523,10 +536,10 @@ class SettingsTab(BaseWidget):
             """)
         
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        item_layout.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)  # Выравнивание по вертикали
+        item_layout.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)  
         
         text_layout = QVBoxLayout()
-        text_layout.setSpacing(5)  # Уменьшен отступ между заголовком и описанием
+        text_layout.setSpacing(5)  
         
         title_label = QLabel(title)
         title_label.setStyleSheet(f"""
@@ -566,9 +579,9 @@ class SettingsTab(BaseWidget):
         text_layout.addWidget(title_label)
         text_layout.addWidget(desc_label)
         
-        item_layout.addLayout(text_layout, 1)  # Stretch factor 1 для текста
+        item_layout.addLayout(text_layout, 1)  
         item_layout.addStretch()
-        item_layout.addWidget(control_widget, 0, Qt.AlignmentFlag.AlignVCenter)  # Выравнивание переключателя
+        item_layout.addWidget(control_widget, 0, Qt.AlignmentFlag.AlignVCenter)  
         
         return item
 
@@ -1062,7 +1075,6 @@ class SettingsTab(BaseWidget):
                 except:
                     pass
             
-            # Перезагружаем вкладки с обновлением переводов
             if hasattr(main_window, 'news_tab') and main_window.news_tab:
                 if hasattr(main_window.news_tab, 'update_translations'):
                     main_window.news_tab.update_translations()
@@ -1087,7 +1099,6 @@ class SettingsTab(BaseWidget):
                 else:
                     main_window.downloads_tab.load_downloads()
             
-            # Перезагружаем текущий раздел настроек
             self.show_interface_settings()
             
             log_info("Translations updated manually")
@@ -1178,7 +1189,14 @@ class SettingsTab(BaseWidget):
 
     def hide_copied_label(self) -> None:
         """Скрытие метки 'Скопировано!' с анимацией исчезновения"""
-        if not self.copied_label.isVisible():
+        if not hasattr(self, 'copied_label') or self.copied_label is None:
+            return
+        
+        try:
+            if not self.copied_label.isVisible():
+                return
+        except RuntimeError:
+            # Виджет был удалён
             return
             
         if hasattr(self, 'copied_fade_animation'):
@@ -1219,10 +1237,10 @@ class SettingsTab(BaseWidget):
         pixmap = self.load_icon_pixmap("infologo.png", (48, 48))
         if not pixmap.isNull():
             logo_label.setPixmap(pixmap)
-            logo_label.setStyleSheet("QLabel { background: transparent; }")
+            logo_label.setStyleSheet("QLabel { background: transparent; border: none; }")
         else:
             logo_label.setText("•")
-            logo_label.setStyleSheet("QLabel { font-size: 48px; background: transparent; }")
+            logo_label.setStyleSheet("QLabel { font-size: 48px; background: transparent; border: none; }")
         
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_label.setMinimumSize(48, 48)
@@ -1351,9 +1369,14 @@ class SettingsTab(BaseWidget):
         
         update_icon_path = get_icon_path("update.png")
         if update_icon_path:
-            from PyQt6.QtGui import QIcon
+            from PyQt6.QtGui import QIcon, QPixmap
             from PyQt6.QtCore import QSize
-            update_icon = QIcon(update_icon_path)
+            from theme_manager import theme_manager, colorize_pixmap
+            
+            pixmap = QPixmap(update_icon_path)
+            if theme_manager.is_light():
+                pixmap = colorize_pixmap(pixmap, c['text_secondary'])
+            update_icon = QIcon(pixmap)
             update_btn.setIcon(update_icon)
             update_btn.setIconSize(QSize(16, 16))
         
@@ -1361,7 +1384,7 @@ class SettingsTab(BaseWidget):
             QPushButton {{
                 background-color: {c['bg_button']};
                 color: {c['text_primary']};
-                border: 1px solid {c['border']};
+                border: none;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: bold;
@@ -1467,7 +1490,7 @@ class SettingsTab(BaseWidget):
         
         button_container = QWidget()
         button_container.setFixedHeight(60)
-        button_container.setStyleSheet("QWidget { background: transparent; }")
+        button_container.setStyleSheet("QWidget { background: transparent; border: none; }")
         button_container_layout = QVBoxLayout(button_container)
         button_container_layout.setContentsMargins(0, 0, 0, 0)
         
@@ -1477,9 +1500,14 @@ class SettingsTab(BaseWidget):
         
         update_icon_path = get_icon_path("update.png")
         if update_icon_path:
-            from PyQt6.QtGui import QIcon
+            from PyQt6.QtGui import QIcon, QPixmap
             from PyQt6.QtCore import QSize
-            update_icon = QIcon(update_icon_path)
+            from theme_manager import theme_manager, colorize_pixmap
+            
+            pixmap = QPixmap(update_icon_path)
+            if theme_manager.is_light():
+                pixmap = colorize_pixmap(pixmap, c['text_secondary'])
+            update_icon = QIcon(pixmap)
             check_button.setIcon(update_icon)
             check_button.setIconSize(QSize(16, 16))
         
@@ -1487,7 +1515,7 @@ class SettingsTab(BaseWidget):
             QPushButton {{
                 background-color: {c['bg_button']};
                 color: {c['text_primary']};
-                border: 1px solid {c['border']};
+                border: none;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: bold;
@@ -1611,7 +1639,6 @@ class SettingsTab(BaseWidget):
         """
         icon_style = "background: transparent; border: none; margin-top: 1px;"
 
-        # GitHub
         github_layout = QHBoxLayout()
         github_layout.setSpacing(8)
         github_icon = QLabel()
@@ -1838,9 +1865,14 @@ class SettingsTab(BaseWidget):
                         
                         update_icon_path = get_icon_path("update.png")
                         if update_icon_path:
-                            from PyQt6.QtGui import QIcon
+                            from PyQt6.QtGui import QIcon, QPixmap
                             from PyQt6.QtCore import QSize
-                            update_icon = QIcon(update_icon_path)
+                            from theme_manager import theme_manager, colorize_pixmap
+                            
+                            pixmap = QPixmap(update_icon_path)
+                            if theme_manager.is_light():
+                                pixmap = colorize_pixmap(pixmap, theme_manager.colors['text_secondary'])
+                            update_icon = QIcon(pixmap)
                             sender.setIcon(update_icon)
                             sender.setIconSize(QSize(16, 16))
                         
@@ -1896,9 +1928,14 @@ class SettingsTab(BaseWidget):
             
             update_icon_path = get_icon_path("update.png")
             if update_icon_path:
-                from PyQt6.QtGui import QIcon
+                from PyQt6.QtGui import QIcon, QPixmap
                 from PyQt6.QtCore import QSize
-                update_icon = QIcon(update_icon_path)
+                from theme_manager import theme_manager, colorize_pixmap
+                
+                pixmap = QPixmap(update_icon_path)
+                if theme_manager.is_light():
+                    pixmap = colorize_pixmap(pixmap, theme_manager.colors['text_secondary'])
+                update_icon = QIcon(pixmap)
                 button.setIcon(update_icon)
                 button.setIconSize(QSize(16, 16))
             
@@ -1959,7 +1996,6 @@ class SettingsTab(BaseWidget):
                 }}
             """)
         
-        # Обновляем стиль scroll_area
         if hasattr(self, 'scroll_area'):
             self.scroll_area.setStyleSheet(f"""
                 QScrollArea {{
@@ -1990,7 +2026,6 @@ class SettingsTab(BaseWidget):
                 }}
             """)
         
-        # Обновляем стиль content_area
         if hasattr(self, 'content_area'):
             self.content_area.setStyleSheet(f"""
                 QWidget {{
@@ -1999,7 +2034,6 @@ class SettingsTab(BaseWidget):
                 }}
             """)
         
-        # Перезагружаем иконки кнопок меню
         for btn in [self.interface_btn, self.temp_files_btn, self.updates_btn, 
                     self.about_btn, self.contacts_btn]:
             if btn and hasattr(btn, 'property'):
@@ -2012,9 +2046,7 @@ class SettingsTab(BaseWidget):
                         btn.setIcon(QIcon(pixmap))
                         btn.setIconSize(QSize(16, 16))
         
-        # Обновляем стили кнопок меню
         if hasattr(self, 'interface_btn'):
-            # Определяем какая кнопка активна
             active_btn = None
             for btn in [self.interface_btn, self.temp_files_btn, self.updates_btn, 
                        self.about_btn, self.contacts_btn]:
@@ -2022,7 +2054,6 @@ class SettingsTab(BaseWidget):
                     active_btn = btn
                     break
             
-            # Обновляем стили всех кнопок
             for btn in [self.interface_btn, self.temp_files_btn, self.updates_btn, 
                        self.about_btn, self.contacts_btn]:
                 if btn:
@@ -2031,5 +2062,4 @@ class SettingsTab(BaseWidget):
                     else:
                         btn.setStyleSheet(self.get_inactive_button_style())
         
-        # Перерисовываем текущую страницу настроек
         self.show_interface_settings()
