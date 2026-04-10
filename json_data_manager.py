@@ -24,7 +24,6 @@ def get_cache_dir():
         return cache_dir
     except Exception as e:
         print(f"Ошибка создания папки кэша: {e}")
-        # Используем временную папку
         import tempfile
         temp_cache = os.path.join(tempfile.gettempdir(), 'UTILHELP_cache')
         os.makedirs(temp_cache, exist_ok=True)
@@ -46,7 +45,6 @@ class DataLoader(QThread):
             'news': []
         }
         
-        # Получаем безопасную папку для кэша
         self.cache_dir = get_cache_dir()
         print(f"Используется папка кэша: {self.cache_dir}")
     
@@ -153,7 +151,6 @@ class DataLoader(QThread):
             if response.status_code == 200:
                 data = response.json()
                 
-                # Валидируем загруженные данные
                 if data_type in data and isinstance(data[data_type], list):
                     for item in data[data_type]:
                         try:
@@ -165,7 +162,6 @@ class DataLoader(QThread):
                                 self.validate_news_data(item)
                         except ValueError as ve:
                             print(f"Предупреждение: некорректные данные в {data_type}: {ve}")
-                            # Пропускаем некорректный элемент, но продолжаем
                             continue
                 
                 return data
@@ -349,6 +345,11 @@ class JsonDataManager:
                 cache_file = os.path.join(cache_dir, filename)
                 if os.path.exists(cache_file):
                     os.remove(cache_file)
+            
+            from logo_manager import get_logo_manager
+            logo_manager = get_logo_manager()
+            logo_manager.clear_cache()
+            
             print("✓ Кэш очищен")
         except Exception as e:
             print(f"Ошибка очистки кэша: {e}")

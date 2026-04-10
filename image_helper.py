@@ -1,24 +1,25 @@
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
-from resource_path import get_program_image_path
 
 
-def load_program_image(image_name):
-    """Загрузить изображение программы/драйвера"""
+def load_program_image(image_name, callback=None):
+    """
+    Загрузить изображение программы/драйвера
+    
+    Args:
+        image_name: Имя файла изображения
+        callback: Опциональная функция обратного вызова (logo_name, pixmap) для асинхронной загрузки
+        
+    Returns:
+        QPixmap если изображение в кэше, иначе None (будет загружено асинхронно если указан callback)
+    """
     if not image_name:
         return None
     
-    image_path = get_program_image_path(image_name)
+    from logo_manager import get_logo_manager
+    logo_manager = get_logo_manager()
     
-    if not image_path:
-        return None
-    
-    pixmap = QPixmap(image_path)
-    
-    if pixmap.isNull():
-        return None
-    
-    return pixmap
+    return logo_manager.load_logo(image_name, callback)
 
 
 def create_program_icon(image_name, size=(24, 24)):
