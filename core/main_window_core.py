@@ -97,7 +97,7 @@ class MainWindow(QMainWindow, BaseWidget):
         # Основной контент
         self._create_main_content(main_layout)
         
-        # Снегопад (изначально скрыт)
+        # Снегопад 
         self._create_snow_widget()
     
     def _create_title_bar(self, main_layout: QVBoxLayout) -> None:
@@ -260,11 +260,10 @@ class MainWindow(QMainWindow, BaseWidget):
     def _create_snow_widget(self) -> None:
         """Создание виджета снегопада"""
         self.snow_widget = SnowWidget(self)
-        self.snow_widget.hide()  # Изначально скрыт
+        self.snow_widget.hide()  
     
     def _setup_connections(self) -> None:
         """Настройка соединений сигналов"""
-        # Подключаем сигналы загрузки данных
         self.data_loading_completed.connect(self.on_data_loaded)
         self.data_loading_failed.connect(self.on_data_failed)
     
