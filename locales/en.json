@@ -28,6 +28,9 @@
     "favorites": "Favorites",
     "browsers": "Browsers",
     "archivers": "Archivers",
+    "graphics": "Graphics",
+    "design": "Design",
+    "gaming_platforms": "Gaming Platforms",
     "media": "Media",
     "office": "Office",
     "development": "Development",
@@ -61,7 +64,10 @@
     "empty_hint": "Download programs or drivers,\nand they will appear here",
     "delete_confirm": "Delete file '{name}'?",
     "delete_error": "Failed to delete file",
-    "confirmation": "Confirmation"
+    "confirmation": "Confirmation",
+    "delete_all": "Delete All",
+    "delete_all_confirm": "Are you sure you want to delete all {count} files from the library?",
+    "delete_all_warning": "This action cannot be undone!"
   },
   "settings": {
     "title": "SETTINGS",
@@ -74,7 +80,7 @@
     "language_hint": "Select interface language",
     "theme": "Theme",
     "theme_dark": "Dark Theme",
-    "theme_light": "Light Theme (In Development)",
+    "theme_light": "Light Theme",
     "snowfall": "Snowfall",
     "snowfall_hint": "Festive snowflake animation",
     "temp_files": "Temporary Files",
